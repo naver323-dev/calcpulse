@@ -80,8 +80,12 @@
 
 | 환경변수 | 화면 |
 | --- | --- |
-| 미설정(현재) | "On sale shortly" 안내 + 무료 샘플. 죽은 `href=""`가 나가지 않음 |
+| 미설정 | "On sale shortly" 안내 + 무료 샘플. 죽은 `href=""`가 나가지 않음 |
 | `https://…gumroad.com/l/…` | 상단·가격 섹션 버튼이 Gumroad로 연결되고 Product JSON-LD가 켜짐 |
+
+> **2026-11-17 설정 완료.** Cloudflare Pages `calcpulse` 프로젝트의 Production 환경변수에
+> `PUBLIC_GUMROAD_VAULT_URL`·`PUBLIC_GUMROAD_DATASET_URL`을 등록하고 재배포했습니다.
+> 프로덕션에서 두 링크가 실제로 살아 있는 것을 확인했습니다(아래 라이브 URL).
 
 가드(`scripts/forbidden_terms.py`)는 `href=""`·`href="#"`를 배포 실패로 처리하므로,
 링크 유무 두 상태를 모두 명시적으로 렌더링합니다.
@@ -97,6 +101,19 @@
 - 주 1회 팩을 만들 때 이 두 파일을 갱신하고 커밋하면 페이지가 그 주 숫자로 바뀝니다.
 - 결제 링크는 `PUBLIC_GUMROAD_DATASET_URL`(빌드 시점)로만 들어가고, 미설정이면
   "Gumroad listing opens with the first shipped pack" 안내와 샘플만 렌더링합니다.
+
+### 라이브 URL (2026-11-17 게시)
+
+| 대상 | URL | 가격 |
+| --- | --- | --- |
+| Gumroad 스토어프론트 | `https://calcpulse.gumroad.com` | — |
+| P2 볼트 (2티어: Complete bundle / Starter) | `https://calcpulse.gumroad.com/l/ai-workflow-vault` | $14 / $5 |
+| P3 주간 오픈데이터 팩 (2026-W47) | `https://calcpulse.gumroad.com/l/calcpulse-opendata-weekly` | $9 |
+| 사이트 P2 페이지 | `https://calcpulse.pages.dev/vault/` | — |
+| 사이트 P3 페이지 | `https://calcpulse.pages.dev/datasets/` | — |
+
+판매자 표기는 **CalcPulse** / **CalcPulse Editorial Team**만 사용하며, 공개 프로필·상품 페이지에
+개인 실명이나 닉네임은 넣지 않습니다.
 
 ---
 
@@ -163,14 +180,47 @@ Cloudflare Pages 배포입니다.
 | 단계 | 파일 | 하는 일 |
 | --- | --- | --- |
 | 수집 | `scripts/collect_topic.py` | Hacker News(Algolia)·GitHub·Google Trends에서 주제 1건 선정. 요일 로테이션으로 세 주제(AI 원가 / SaaS·툴 / 생활금융)를 돌아가며 쓰고, 이미 발행한 슬러그·제목·키워드·출처 URL과 겹치면 버립니다 |
-| 생성 | `scripts/generate_guide.py` | `gemini-3.8-flash` → 실패 시 `gemini-3.5-flash-lite`(무료 등급, Search 그라운딩 미사용). JSON 초안 → 검증 실패 시 1회 수정 요청 |
+| 생성 | `scripts/generate_guide.py` | 3단 무료 폴백 체인(`scripts/llm_fallback.py`)으로 JSON 초안 작성: Gemini(`gemini-3.8-flash` → `gemini-3.5-flash-lite`) → Groq(`openai/gpt-oss-120b` → `openai/gpt-oss-20b`) → OpenRouter(`nvidia/nemotron-3-ultra-550b-a55b:free` → `google/gemma-4-26b-a4b-it:free`). 검증 실패 시 1회 수정 요청 |
 | 검증 | 같은 파일 | 슬러그·길이·문단·FAQ 구조, 링크 금지, Astro를 깨는 문자 금지, 그리고 `scripts/forbidden_terms.py`의 금칙어 목록을 **그대로 import**해 사전 차단 |
 | 렌더 | `src/pages/guides/<slug>.astro` + `src/data/guides.ts` | 실제 사이트 구조 그대로 생성. 주제에 맞는 계산기 컴포넌트를 본문에 넣고, StackVerdict 링크와 다른 계산기 가이드 내부 링크를 붙입니다 |
 | 게이트 | `npm test` | 빌드 + 산술 + DOM + 금칙어 가드 + 파이프라인 테스트. 실패하면 생성 파일을 되돌리고 커밋하지 않습니다 |
 | 발행 | `git commit` → `push` | `--publish`일 때만. 커밋 메시지는 가이드 제목 |
 
-무료 한도 보호: 429/쿼터 응답은 실패가 아니라 **그날 건너뛰기(exit 0)**로 끝납니다.
-1회 실행 최대 1편, 하루 1편 상한은 `scripts/pipeline_state.json`이 기억합니다.
+무료 한도 보호: 한 티어가 429/쿼터로 막히면 다음 티어가 이어서 씁니다. **모든** 티어가
+쿼터로 막혔을 때만 **그날 건너뛰기(exit 0)**로 끝나고, 키가 틀렸거나 서비스가 죽은 경우는
+종료코드 3으로 드러납니다. 1회 실행 최대 1편, 하루 1편 상한은 `scripts/pipeline_state.json`이 기억합니다.
+
+### 3단 무료 폴백 체인 (`scripts/llm_fallback.py`)
+
+| 순서 | 티어 | 필요한 값 | 무료 조건(2026-11-17 확인) |
+| --- | --- | --- | --- |
+| 1 | Gemini (Google AI Studio) | `GEMINI_API_KEY` | Flash 계열 무료 등급 |
+| 2 | Groq (`https://api.groq.com/openai/v1`) | `GROQ_API_KEY` | gpt-oss-120b/20b: 30 RPM, 1,000 RPD, 8K TPM, 200K TPD. **카드 불필요** |
+| 3 | OpenRouter (`https://openrouter.ai/api/v1`, `:free` 모델) | `OPENROUTER_API_KEY` | :free 모델은 입력·출력 단가 $0. **카드 불필요**(크레딧 0으로도 동작). 2026-11-17 실호출 확인: `nvidia/nemotron-3-ultra-550b-a55b:free`, `google/gemma-4-26b-a4b-it:free` |
+
+- 세 키 중 **하나만 있어도** 생성됩니다. 없는 티어는 조용히 건너뜁니다.
+- 429/쿼터 → 다음 모델 → 다음 티어. 401/403(키 오류) → 그 티어만 포기하고 다음 티어.
+  404/410(모델·엔드포인트 종료) → 다음 모델. 5xx/타임아웃 → 1회 재시도 후 다음 티어.
+- 답이 JSON이 아니면 그 모델은 버리고 다음으로 넘어갑니다. 초안 검증기는 그대로 최종 관문입니다.
+- 발행 기록의 `model` 값이 `groq:openai/gpt-oss-120b`처럼 **어느 티어가 쓴 글인지** 남깁니다.
+- Groq은 Cloudflare 뒤에 있어 Python 기본 User-Agent(`Python-urllib/3.x`)를 403(1010)로 막습니다.
+  모듈이 자체 User-Agent를 보냅니다.
+- gpt-oss 계열은 추론 토큰을 답변 예산에서 씁니다. `GROQ_REASONING_EFFORT`(기본 `medium`)로
+  조절하고, 출력 상한은 TPM 8K 보호를 위해 4,096 토큰으로 낮춰 둡니다.
+
+```bash
+python3 scripts/llm_fallback.py --check   # 지금 어느 티어가 살아 있는지 (발행 없음)
+```
+
+3번 티어는 OpenRouter의 `:free` 모델입니다. 입력·출력 단가가 0으로 고정돼 있고 크레딧을
+충전하지 않아도 호출되므로(잔액 $0, 카드 없음) 과금 위험이 없습니다. 무료 풀은 붐빌 때
+upstream 429를 돌려주는데, 그때는 다음 모델(`gemma-4-26b-a4b-it:free`)로 넘어갑니다.
+
+- GitHub Models는 2026-07-30자로 서비스가 종료되어 기본 순서에서 뺐습니다. `GITHUB_MODELS_*`
+  변수를 쓰는 OpenAI 호환 슬롯은 코드에 남아 있어 `LLM_PROVIDERS`로 되살릴 수 있습니다.
+- Cerebras는 키를 만들어도 콘솔이 "API access isn't active yet"이라 카드 등록을 요구합니다.
+  그래서 기본 순서에 넣지 않았고, 카드를 넣기로 하면 `CEREBRAS_API_KEY`만 추가하면 됩니다.
+- `LLM_PROVIDERS`(예: `gemini,groq`)로 순서를 줄이거나 바꿀 수 있습니다.
 
 로컬 명령:
 
