@@ -43,6 +43,7 @@
 | 일일 생성 워크플로 | `.github/workflows/daily-guide.yml` (KST 10:15 + 수동 실행) |
 | 오퍼 슬롯(제휴·P2 유입) | `src/data/monetization.ts` + `OfferSlot.astro` |
 | P2 볼트 페이지 `/vault/` | 무료 샘플 3종(프롬프트 2 + 파이썬 1) 전문 공개 + $14/$5 안내 + Gumroad 링크(환경변수) |
+| P3 데이터셋 페이지 `/datasets/` | 이번 주 실측 6개 시리즈 표 + 샘플 CSV 다운로드 + 컬럼 사전 + $9 팩 안내 + Dataset JSON-LD |
 
 ### 발행된 가이드
 
@@ -60,6 +61,7 @@
 | 오퍼 | 상태 | 링크 |
 | --- | --- | --- |
 | `vault` (P2 볼트) | 활성 | `/vault/` 내부 유입 — 무료 샘플이 있는 페이지에서 Gumroad로 이동 |
+| `csv` (P3 오픈데이터) | 활성 | `/datasets/` 내부 유입 — 무료 샘플 표·CSV에서 $9 팩으로 이동 |
 | `stackverdict` (자체 사이트) | 활성 | `https://stackverdict-two.vercel.app` — **배포 전 실제 공개 URL 확인 필요** |
 | `make` (제휴) | 활성, **URL 미설정 → 화면에 나오지 않음** | 프로그램 승인 후 `url` 입력 |
 
@@ -84,6 +86,18 @@
 가드(`scripts/forbidden_terms.py`)는 `href=""`·`href="#"`를 배포 실패로 처리하므로,
 링크 유무 두 상태를 모두 명시적으로 렌더링합니다.
 
+### /datasets/ 페이지와 무료 샘플
+
+`src/pages/datasets.astro`는 P3 파이프라인(`../p3-opendata-diff`)이 실제로 수집한 값으로
+채워집니다. 손으로 옮겨 적지 않습니다.
+
+- `src/data/dataset-sample.json` — 파이프라인이 `python3 -m pipeline.export_site_sample`로
+  생성한 6개 시리즈 스냅샷(라벨·최신값·전주값·증감률·z-score·이상치 플래그).
+- `public/datasets/calcpulse-open-data-sample-<week>.csv` — 같은 6행의 실제 CSV(20컬럼 전부).
+- 주 1회 팩을 만들 때 이 두 파일을 갱신하고 커밋하면 페이지가 그 주 숫자로 바뀝니다.
+- 결제 링크는 `PUBLIC_GUMROAD_DATASET_URL`(빌드 시점)로만 들어가고, 미설정이면
+  "Gumroad listing opens with the first shipped pack" 안내와 샘플만 렌더링합니다.
+
 ---
 
 ## 2. 로컬 실행·검증
@@ -101,11 +115,12 @@ npm test               # 위 4개를 순서대로 한 번에
 2026-11-17 기준 실제 실행 결과:
 
 ```
-7 page(s) built in 2.24s
-10 checks passed
-3 DOM checks passed
-checked 7 pages in dist
+11 page(s) built in 3.4s
+15 checks passed
+4 DOM checks passed
+checked 11 pages in dist
 PASS: no forbidden topics, all required pages present
+18 pipeline checks passed
 ```
 
 `npm run guard`는 다음을 막습니다: 금칙 주제(국방·군수·방산·조달 등) 단어, 필수 페이지 누락,
