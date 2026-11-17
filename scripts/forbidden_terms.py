@@ -59,6 +59,7 @@ REQUIRED_PAGES: tuple[tuple[str, str], ...] = (
     ("guides/ai-api-cost-calculator/index.html", "LLM API cost calculator"),
     ("guides/saas-break-even-calculator/index.html", "SaaS break-even calculator"),
     ("guides/payment-fee-calculator/index.html", "Payment fee calculator"),
+    ("vault/index.html", "Ten prompts that hold their shape"),
     ("about/index.html", "About CalcPulse"),
     ("privacy/index.html", "Calculator inputs"),
     ("affiliate-disclosure/index.html", "Affiliate disclosure"),

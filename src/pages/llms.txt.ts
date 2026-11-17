@@ -26,6 +26,10 @@ export const GET: APIRoute = ({ site }) => {
 
 ${guideLines}
 
+## Products
+
+- [The workflow vault](${origin}/vault/): ten system prompts and ten automation snippets sold as files ($14, Gumroad). Ten of the twenty files are described on the page and three are published in full as free samples.
+
 ## Reference pages
 
 - [About](${origin}/about/): how pages are written and reviewed, and what the site refuses to do.

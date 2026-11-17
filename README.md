@@ -42,6 +42,7 @@
 | 배포 | Cloudflare Pages **Git 연동** — `main` 푸시가 곧 배포 (워크플로 불필요) |
 | 일일 생성 워크플로 | `.github/workflows/daily-guide.yml` (KST 10:15 + 수동 실행) |
 | 오퍼 슬롯(제휴·P2 유입) | `src/data/monetization.ts` + `OfferSlot.astro` |
+| P2 볼트 페이지 `/vault/` | 무료 샘플 3종(프롬프트 2 + 파이썬 1) 전문 공개 + $14/$5 안내 + Gumroad 링크(환경변수) |
 
 ### 발행된 가이드
 
@@ -58,9 +59,30 @@
 
 | 오퍼 | 상태 | 링크 |
 | --- | --- | --- |
-| `vault` (P2 볼트) | 활성, **URL 미설정 → 화면에 나오지 않음** | Gumroad 상품 생성 후 `url` 입력 |
+| `vault` (P2 볼트) | 활성 | `/vault/` 내부 유입 — 무료 샘플이 있는 페이지에서 Gumroad로 이동 |
 | `stackverdict` (자체 사이트) | 활성 | `https://stackverdict-two.vercel.app` — **배포 전 실제 공개 URL 확인 필요** |
 | `make` (제휴) | 활성, **URL 미설정 → 화면에 나오지 않음** | 프로그램 승인 후 `url` 입력 |
+
+### /vault/ 페이지와 Gumroad 링크
+
+볼트 상품 페이지는 `src/pages/vault.astro`입니다. 무료 샘플 3종은 상품 빌드의 파일을
+그대로 복사해 `src/data/vault-samples/`에 두고 `?raw`로 읽습니다(내용을 손으로 옮겨 적지
+않으므로 판매용 파일과 화면 문구가 어긋날 수 없습니다).
+
+- `npm run sync:samples` — 상품 빌드(`../p2-ai-vault`)에서 샘플 3종을 복사
+- `npm run test:samples` — 사본이 상품 빌드와 같은지 SHA-256 비교(`npm test`에 포함).
+  상품 빌드가 없는 체크아웃에서는 skip하고 통과합니다.
+
+결제 링크는 **Cloudflare Pages → Settings → Environment variables**의
+`PUBLIC_GUMROAD_VAULT_URL`(빌드 시점 값)로만 들어갑니다.
+
+| 환경변수 | 화면 |
+| --- | --- |
+| 미설정(현재) | "On sale shortly" 안내 + 무료 샘플. 죽은 `href=""`가 나가지 않음 |
+| `https://…gumroad.com/l/…` | 상단·가격 섹션 버튼이 Gumroad로 연결되고 Product JSON-LD가 켜짐 |
+
+가드(`scripts/forbidden_terms.py`)는 `href=""`·`href="#"`를 배포 실패로 처리하므로,
+링크 유무 두 상태를 모두 명시적으로 렌더링합니다.
 
 ---
 

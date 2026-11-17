@@ -1,0 +1,45 @@
+---
+/**
+ * The P2 upsell used where a full-width invitation fits better than a link in a list.
+ *
+ * It always points at /vault/ on this site rather than at Gumroad directly: the vault
+ * page is where the free samples live, so a reader arriving from a guide can judge the
+ * writing before meeting a checkout. The Gumroad link itself is set once, by environment
+ * variable, on that page.
+ */
+interface Props {
+  /** Override the heading where the context calls for something more specific. */
+  heading?: string;
+  class?: string;
+}
+
+const {
+  heading = 'The workflow vault: 10 prompts and 10 scripts',
+  class: className = '',
+} = Astro.props;
+---
+
+<section class={`rounded-xl border border-ink-200 bg-white p-6 ${className}`}>
+  <div class="grid gap-5 sm:grid-cols-5 sm:items-center">
+    <div class="sm:col-span-3">
+      <p class="text-xs font-semibold uppercase tracking-wider text-pulse-600">
+        P2 · Digital product
+      </p>
+      <h2 class="mt-1 text-lg font-semibold text-ink-950">{heading}</h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-600">
+        The prompts and snippets behind these guides: support triage, postmortems, SQL with
+        assumptions, scope documents, plus the Python and Apps Script that do the chores.
+        Three of them are free to read in full.
+      </p>
+    </div>
+    <div class="sm:col-span-2 sm:text-right">
+      <a
+        href="/vault/"
+        class="inline-flex items-center rounded-lg bg-pulse-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-pulse-700"
+      >
+        Read the free samples →
+      </a>
+      <p class="mt-2 text-xs text-ink-400">Full pack $14, lifetime v1.x updates</p>
+    </div>
+  </div>
+</section>

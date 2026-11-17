@@ -29,13 +29,14 @@ export interface Offer {
 export const offers: Offer[] = [
   {
     id: 'vault',
-    kicker: 'P2 · Gumroad',
+    kicker: 'P2 · Digital product',
     title: 'The workflow vault',
-    body: 'System prompts, Apps Script and Python snippets that survived real use — the paid companion to these guides. Delivered through Gumroad.',
-    cta: 'See the vault',
-    // TODO(P2): paste the Gumroad product URL once the product exists.
-    // Gumroad is the single settlement route (individual account, KRW bank payout).
-    url: '',
+    body: 'Ten tested system prompts and ten runnable Python/Apps Script snippets — the paid companion to these guides. Three of them are free to read in full on the vault page; checkout is on Gumroad.',
+    cta: 'Read the free samples',
+    // Internal funnel: /vault/ carries the free samples and the Gumroad button.
+    // The Gumroad URL itself is set once, by PUBLIC_GUMROAD_VAULT_URL at build time,
+    // so this offer never has to be edited when the listing goes live.
+    url: '/vault/',
     kind: 'own',
     enabled: true,
   },

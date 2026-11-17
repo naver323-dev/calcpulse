@@ -1,0 +1,401 @@
+---
+/**
+ * The workflow vault: free samples, what the pack contains, and the price.
+ *
+ * The Gumroad link is a placeholder until the product is published. Set
+ * PUBLIC_GUMROAD_VAULT_URL at build time (Cloudflare Pages → Settings → Environment
+ * variables) and the buttons become real links; with it unset the page shows a
+ * "not on sale yet" panel and every other page keeps pointing at /vault/ rather than
+ * shipping a dead checkout link. The deployment guard fails a build that contains
+ * href="" or href="#", so the two states have to be handled explicitly — which is what
+ * this page does.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import rawMeeting from '../data/vault-samples/02-meeting-notes-to-actions.md?raw';
+import rawCompressor from '../data/vault-samples/10-prompt-compressor.md?raw';
+import rawRetry from '../data/vault-samples/04_retry_backoff.py?raw';
+import { samplePrompt } from '../lib/vault';
+
+const meeting = samplePrompt(rawMeeting);
+const compressor = samplePrompt(rawCompressor);
+const retryCode = rawRetry.trim();
+
+const gumroadUrl = (import.meta.env.PUBLIC_GUMROAD_VAULT_URL ?? '').trim();
+const onSale = gumroadUrl.length > 0;
+
+const description =
+  'Ten tested system prompts and ten runnable Python and Apps Script automation snippets, sold as files by CalcPulse. Read three of them in full before you buy.';
+
+const prompts = [
+  ['Support triage and first-response draft', 'Sort the inbox, draft the reply, refuse to invent policy'],
+  ['Meeting notes to decisions, owners and dates', 'A follow-up email people act on'],
+  ['Pull-request review that finds failure modes', 'Ranked by blast radius, with concrete fixes'],
+  ['Blameless incident postmortem', 'Trigger versus contributing factors, owned actions'],
+  ['Question to SQL, with assumptions', 'Read-only, check queries included'],
+  ['Messy CSV to a cleaning plan', 'Quarantine instead of dropping rows'],
+  ['Scope of work with the exclusions written down', 'A fixed price that survives month two'],
+  ['Interview rubric that scores evidence', 'Six criteria a founder can actually assess'],
+  ['CV screening against your own rubric', 'Every score backed by a quote'],
+  ['Compress a prompt without changing behaviour', 'Cut tokens, keep the constraints'],
+];
+
+const snippets = [
+  ['Batch rename with a dry run and undo', 'Python'],
+  ['CSV de-duplication with a report', 'Python'],
+  ['File manifest and diff', 'Python'],
+  ['Retry with backoff and jitter', 'Python'],
+  ['LLM cost logger', 'Python'],
+  ['Inbox digest builder', 'Python'],
+  ['PDF page extract and split', 'Python'],
+  ['Sheet to Slack daily digest', 'Apps Script'],
+  ['Form to calendar and confirmation email', 'Apps Script'],
+  ['Sheet trim and de-duplicate', 'Apps Script'],
+];
+
+const faq = [
+  {
+    q: 'What exactly do I download?',
+    a: 'A zip of text and code: ten Markdown prompt files, seven Python scripts, three Apps Script files, three how-to guides, the test suite and the licence. About 80 KB. There is no app, no account and no subscription.',
+  },
+  {
+    q: 'Are the free samples really the same files?',
+    a: 'Yes. The two prompts and the script on this page are byte-identical copies of files inside the pack, and the site build fails if they drift from it. The paid files add the remaining seven prompts, six scripts and the guides.',
+  },
+  {
+    q: 'Which model do the prompts need?',
+    a: 'Any instruction-following chat model. Each file states the context window it assumes. Temperature guidance is in the how-to guide: low for anything that returns JSON or SQL, default for writing.',
+  },
+  {
+    q: 'Can I use this in client work?',
+    a: 'Yes. The licence covers personal and commercial use, including client deliverables. You cannot resell the pack itself or hand the files to people outside your company.',
+  },
+  {
+    q: 'How is it tested?',
+    a: 'Every Python file is compiled, every Apps Script file is parsed by the JavaScript engine, and eleven tests run against fixtures before a release. The verification report ships in the download, and the test suite can be run by any buyer.',
+  },
+  {
+    q: 'Why is it $14 and not free?',
+    a: 'Because the samples are the honest test: if they are worth your time, the other seventeen files are worth $14. If they are not, you have lost nothing but five minutes.',
+  },
+];
+
+const jsonLd: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  },
+];
+
+if (onSale) {
+  jsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: 'AI Workflow & Automation Snippet Vault',
+    description,
+    brand: { '@type': 'Brand', name: 'CalcPulse' },
+    offers: {
+      '@type': 'Offer',
+      price: '14.00',
+      priceCurrency: 'USD',
+      url: gumroadUrl,
+      availability: 'https://schema.org/InStock',
+    },
+  });
+}
+---
+
+<BaseLayout title="The AI Workflow & Automation Snippet Vault — CalcPulse" description={description} jsonLd={jsonLd}>
+  <section class="border-b border-ink-200 bg-white">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12 sm:py-16">
+      <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+        <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span> Vault
+      </nav>
+
+      <p class="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">
+        Digital product · CalcPulse Editorial Team
+      </p>
+      <h1 class="mt-3 text-3xl sm:text-5xl font-semibold tracking-tight text-ink-950 max-w-3xl">
+        Ten prompts that hold their shape. Ten scripts that run.
+      </h1>
+      <p class="mt-5 max-w-2xl text-lg text-ink-600 leading-relaxed">
+        Most prompt packs are written, not run. This one is ten system prompts and ten
+        automation snippets for work where a wrong answer costs something — a reply that
+        promises money, a postmortem that blames a person, a query that returns a confident
+        wrong number. Files, not a platform.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        {
+          onSale ? (
+            <a
+              href={gumroadUrl}
+              rel="noopener"
+              class="inline-flex items-center rounded-lg bg-pulse-600 px-5 py-3 text-sm font-semibold text-white hover:bg-pulse-700"
+            >
+              Get the pack — $14
+            </a>
+          ) : (
+            <span class="inline-flex items-center rounded-lg border border-ink-200 bg-ink-50 px-5 py-3 text-sm font-semibold text-ink-600">
+              On sale shortly — the samples below are live now
+            </span>
+          )
+        }
+        <a
+          href="/guides/"
+          class="text-sm font-semibold text-pulse-600 hover:text-pulse-700"
+        >
+          Or read the free calculators first →
+        </a>
+      </div>
+
+      <dl class="mt-10 grid gap-6 sm:grid-cols-4 text-sm">
+        <div>
+          <dt class="text-ink-400">Prompts</dt>
+          <dd class="mt-1 text-2xl font-semibold text-ink-950">10</dd>
+        </div>
+        <div>
+          <dt class="text-ink-400">Scripts</dt>
+          <dd class="mt-1 text-2xl font-semibold text-ink-950">10</dd>
+        </div>
+        <div>
+          <dt class="text-ink-400">Price</dt>
+          <dd class="mt-1 text-2xl font-semibold text-ink-950">$14</dd>
+        </div>
+        <div>
+          <dt class="text-ink-400">Updates</dt>
+          <dd class="mt-1 text-2xl font-semibold text-ink-950">v1.x free</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 py-14">
+    <h2 class="text-xl font-semibold text-ink-950">What is in the pack</h2>
+    <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600">
+      Each prompt file carries the prompt, an example input, what a good result looks like
+      and a failure table. Each script carries a docstring that says what it refuses to do.
+      Nothing here is a wrapper around an API you have to pay for twice.
+    </p>
+
+    <div class="mt-8 grid gap-10 sm:grid-cols-2">
+      <div>
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-400">System prompts</h3>
+        <ol class="mt-3 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            prompts.map(([name, note]) => (
+              <li class="py-3">
+                <p class="text-sm font-medium text-ink-950">{name}</p>
+                <p class="text-sm text-ink-600">{note}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-ink-400">Automation snippets</h3>
+        <ol class="mt-3 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            snippets.map(([name, lang]) => (
+              <li class="flex items-baseline justify-between gap-4 py-3">
+                <p class="text-sm font-medium text-ink-950">{name}</p>
+                <p class="text-xs text-ink-400 whitespace-nowrap">{lang}</p>
+              </li>
+            ))
+          }
+        </ol>
+        <p class="mt-4 text-xs leading-relaxed text-ink-400">
+          Standard library only, except an optional <code>pypdf</code> for the PDF script.
+          Python 3.10+. Apps Script files paste into a Google Sheet or Form.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="border-y border-ink-200 bg-white">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 py-14">
+      <h2 class="text-xl font-semibold text-ink-950">Three samples, in full</h2>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600">
+        Not excerpts. These are the files, exactly as they arrive — including the parts that
+        tell you where the prompt goes wrong. If the writing is not for you, you will know
+        before you spend anything.
+      </p>
+
+      <article class="mt-10">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-lg font-semibold text-ink-950">{meeting.title}</h3>
+          <p class="text-xs text-ink-400">Prompt · {meeting.category} · {meeting.lines} lines</p>
+        </div>
+        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-ink-600">
+          Meeting notes fail in the same three ways: nobody knows what was decided, actions
+          have no owner, and dates are implied. This prompt extracts exactly those three
+          things and returns everything else as an open question rather than a decision.
+        </p>
+        <pre class="mt-4 max-h-96 overflow-auto rounded-xl border border-ink-200 bg-ink-950 p-4 text-xs leading-relaxed text-ink-50"><code>{meeting.body}</code></pre>
+      </article>
+
+      <article class="mt-12">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-lg font-semibold text-ink-950">{compressor.title}</h3>
+          <p class="text-xs text-ink-400">Prompt · {compressor.category} · {compressor.lines} lines</p>
+        </div>
+        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-ink-600">
+          System prompts only ever grow, and the growth is paid on every call. This one edits a
+          prompt the way an editor cuts a draft: duplication and hedging first, and never a
+          constraint that changes the output.
+        </p>
+        <pre class="mt-4 max-h-96 overflow-auto rounded-xl border border-ink-200 bg-ink-950 p-4 text-xs leading-relaxed text-ink-50"><code>{compressor.body}</code></pre>
+      </article>
+
+      <article class="mt-12">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="text-lg font-semibold text-ink-950">Retry with backoff, a cap and jitter</h3>
+          <p class="text-xs text-ink-400">Python · 04_retry_backoff.py</p>
+        </div>
+        <p class="mt-2 max-w-3xl text-sm leading-relaxed text-ink-600">
+          The whole file, not a gist. It retries only the exceptions you name, aborts on the
+          ones that will never succeed, caps the delay and spreads retries out so a
+          rate-limited service does not get a synchronized second wave.
+        </p>
+        <pre class="mt-4 max-h-[32rem] overflow-auto rounded-xl border border-ink-200 bg-ink-950 p-4 text-xs leading-relaxed text-ink-50"><code>{retryCode}</code></pre>
+      </article>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 py-14 grid gap-10 sm:grid-cols-5">
+    <div class="sm:col-span-3">
+      <h2 class="text-xl font-semibold text-ink-950">How it is checked before it ships</h2>
+      <ul class="mt-4 space-y-3 text-sm leading-relaxed text-ink-600">
+        <li>
+          <strong class="text-ink-950">Every Python file is compiled</strong> with
+          <code>py_compile</code>, and eleven tests run each script against fixtures in a
+          temporary directory — dry runs stay dry, an overwrite attempt stops the run, a
+          duplicate is quarantined rather than deleted.
+        </li>
+        <li>
+          <strong class="text-ink-950">Every Apps Script file is parsed</strong> by the
+          JavaScript engine. They are not executed against a Google account here, and the
+          guide says so rather than implying otherwise.
+        </li>
+        <li>
+          <strong class="text-ink-950">The archive is checked against the source tree</strong>,
+          file by file, with a SHA-256 manifest inside the download so a buyer can verify what
+          arrived.
+        </li>
+      </ul>
+      <p class="mt-4 text-sm leading-relaxed text-ink-600">
+        The verification report is in the pack, and so is the script that produces it. Nothing
+        about that is unusual; it is just the difference between "tested" as an adjective and
+        tested as a command you can run.
+      </p>
+    </div>
+    <aside class="sm:col-span-2 rounded-xl border border-ink-200 bg-white p-5">
+      <h2 class="text-sm font-semibold text-ink-950">What it is not</h2>
+      <ul class="mt-3 space-y-2 text-sm leading-relaxed text-ink-600">
+        <li>Not an app, a dashboard or an account.</li>
+        <li>Not prompts that work unread — each one names where it breaks.</li>
+        <li>Not an SLA. It is a pack of files with a licence.</li>
+        <li>No income claims. A model is not a function.</li>
+      </ul>
+    </aside>
+  </section>
+
+  <section class="border-y border-ink-200 bg-white">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 py-14">
+      <div class="grid gap-8 sm:grid-cols-5">
+        <div class="sm:col-span-3">
+          <h2 class="text-xl font-semibold text-ink-950">Price</h2>
+          <p class="mt-2 text-sm leading-relaxed text-ink-600">
+            One payment, two sizes. The bundle is the product; the starter set exists so you
+            can test the quality with a small amount of money instead of a review you have to
+            trust.
+          </p>
+
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-ink-200 p-5">
+              <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Starter set</p>
+              <p class="mt-1 text-2xl font-semibold text-ink-950">$5</p>
+              <p class="mt-2 text-sm leading-relaxed text-ink-600">
+                3 prompts, 3 Python scripts, the licence. Complete files, not excerpts.
+              </p>
+            </div>
+            <div class="rounded-xl border-2 border-pulse-500 p-5">
+              <p class="text-xs font-semibold uppercase tracking-wider text-pulse-600">Complete bundle</p>
+              <p class="mt-1 text-2xl font-semibold text-ink-950">$14</p>
+              <p class="mt-2 text-sm leading-relaxed text-ink-600">
+                All 10 prompts, all 10 snippets, the guides, the tests, and free v1.x updates.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            {
+              onSale ? (
+                <a
+                  href={gumroadUrl}
+                  rel="noopener"
+                  class="inline-flex items-center rounded-lg bg-pulse-600 px-5 py-3 text-sm font-semibold text-white hover:bg-pulse-700"
+                >
+                  Buy on Gumroad — $14
+                </a>
+              ) : (
+                <div class="rounded-lg border border-dashed border-ink-200 bg-ink-50 p-4 text-sm leading-relaxed text-ink-600">
+                  Checkout opens here once the listing is live. The three samples above are
+                  the real files, so there is nothing to wait for if you want to judge the
+                  writing first.
+                </div>
+              )
+            }
+          </div>
+          <p class="mt-4 text-xs leading-relaxed text-ink-400">
+            Payment happens on Gumroad, not on this site. This page has no card fields and no
+            checkout; see the <a href="/affiliate-disclosure/" class="underline hover:text-ink-600">disclosure</a>
+            and <a href="/privacy/" class="underline hover:text-ink-600">privacy</a> pages.
+          </p>
+        </div>
+
+        <aside class="sm:col-span-2">
+          <h2 class="text-sm font-semibold text-ink-950">Licence in one line</h2>
+          <p class="mt-2 text-sm leading-relaxed text-ink-600">
+            Personal and commercial use, including client work. No resale or redistribution of
+            the pack itself. The full text ships with the download.
+          </p>
+          <h2 class="mt-6 text-sm font-semibold text-ink-950">Support</h2>
+          <p class="mt-2 text-sm leading-relaxed text-ink-600">
+            Best effort within three business days, by email. Broken files and contradicted
+            documentation get fixed; adapting a prompt to your schema is what the tuning
+            sections are for.
+          </p>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-5xl px-4 sm:px-6 py-14">
+    <h2 class="text-xl font-semibold text-ink-950">Questions</h2>
+    <dl class="mt-4 max-w-3xl divide-y divide-ink-200 border-y border-ink-200">
+      {
+        faq.map((item) => (
+          <div class="py-4">
+            <dt class="font-medium text-ink-950">{item.q}</dt>
+            <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+          </div>
+        ))
+      }
+    </dl>
+
+    <div class="mt-10 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+      <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Next</p>
+      <a href="/guides/" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+        The calculators these workflows are about →
+      </a>
+      <p class="mt-1 text-sm text-ink-600">
+        API cost, SaaS break-even and payment fees — each with the working out on the page.
+      </p>
+    </div>
+  </section>
+</BaseLayout>
