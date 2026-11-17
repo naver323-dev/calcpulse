@@ -85,7 +85,8 @@ LABEL_PREFIX = {
     "github-models": "github:",
 }
 
-RETRY_STATUS = (500, 502, 503, 504)
+# 0 is a timeout or dropped connection, which deserves the same single retry as a 5xx.
+RETRY_STATUS = (0, 500, 502, 503, 504)
 
 # Groq sits behind Cloudflare, which answers the default Python-urllib user agent with
 # HTTP 403 (error 1010) before the request ever reaches the API. Send our own name.
@@ -140,6 +141,10 @@ def http_post(url: str, headers: dict[str, str], payload: dict, timeout: int = 1
             return response.status, response.read().decode("utf-8", "replace")
     except urlerror.HTTPError as exc:
         return exc.code, exc.read().decode("utf-8", "replace")
+    except (urlerror.URLError, TimeoutError, OSError) as exc:
+        # A dropped connection or a read timeout has no HTTP status. Report it as status 0
+        # instead of letting a raw exception escape and take the whole run with it.
+        return 0, f"network error: {exc}"
 
 
 Transport = Callable[[str, dict, dict, int], "tuple[int, str]"]
@@ -346,6 +351,9 @@ def _request(
 
     status, body = transport(url, headers, payload, timeout)
 
+    if status == 0:
+        raise ProviderError(provider, model, body[:300] or "no response", 0)
+
     if status == 400 and json_mode and provider != "gemini" and "response_format" in body.lower():
         # A model that cannot promise JSON still answers; drop the flag and let the
         # parser decide. The caller's validator is the real gate either way.
@@ -487,11 +495,11 @@ def main(argv: list[str]) -> int:
                 model,
                 config,
                 "You are a health check.",
-                'Reply with the single word OK.',
+                "Reply with the single word OK.",
                 json_mode=False,
                 temperature=0.0,
                 max_tokens=64,
-                timeout=45,
+                timeout=60,
                 transport=http_post,
                 log=print,
             )
@@ -499,6 +507,9 @@ def main(argv: list[str]) -> int:
         except ProviderError as exc:
             code = 1
             print(f"  ! {provider}/{model}: {exc}")
+        except Exception as exc:  # noqa: BLE001 - one bad tier must not hide the others
+            code = 1
+            print(f"  ! {provider}/{model}: {type(exc).__name__}: {exc}")
     return code
 
 
