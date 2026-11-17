@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: read
-  models: read
 
 jobs:
   check:
@@ -25,5 +24,4 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GITHUB_MODELS_TOKEN: ${{ github.token }}
         run: python3 scripts/llm_fallback.py --check

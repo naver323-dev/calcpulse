@@ -8,9 +8,6 @@ on:
 
 permissions:
   contents: write
-  # Kept for the spare OpenAI-compatible slot of scripts/llm_fallback.py: if the chain is
-  # reordered to "gemini,groq,github-models", the Actions token is what calls it.
-  models: read
 
 concurrency:
   group: daily-guide
@@ -35,5 +32,4 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          GITHUB_MODELS_TOKEN: ${{ github.token }}
         run: python3 scripts/generate_guide.py --publish
