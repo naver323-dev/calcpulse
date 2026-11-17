@@ -58,6 +58,20 @@ export const guides: Guide[] = [
     keywords: ['payment processing fees', 'stripe fee calculator', 'merchant fee calculator', 'effective rate card fees'],
     topic: 'Small-business finance',
   },
+  {
+    slug: "fine-tune-vs-prompt-cost",
+    title: "Fine-tuning versus prompting cost math",
+    h1: "Fine-tuning versus prompt engineering: the unit economics",
+    description:
+      "Calculate whether fine-tuning a smaller model beats packing context into a larger model each month.",
+    summary:
+      "Compare the upfront cost of fine-tuning against the recurring token costs of prompt engineering to find the exact threshold where training pays for itself.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-17',
+    minutes: 6,
+    keywords: ["fine tuning cost", "llm training vs prompting", "token volume math", "model adaptation budget"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

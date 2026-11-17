@@ -1,0 +1,169 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import LlmApiCostCalculator from '../../components/LlmApiCostCalculator.astro';
+
+const guide = guideBySlug('fine-tune-vs-prompt-cost');
+
+const faq = [
+  {
+    q: "How many tokens do I need in my training dataset to make fine-tuning worthwhile?",
+    a: "Dataset size matters less than the complexity of the task and the reduction in runtime tokens. A high-quality dataset of one thousand well-formatted examples is often sufficient for style or formatting tasks, while complex reasoning may require ten thousand or more. Focus your calculation on how many runtime tokens you eliminate per request rather than the size of the training set.",
+  },
+  {
+    q: "Should I include hosting costs in my fine-tuning budget?",
+    a: "Yes, if your chosen provider requires a dedicated GPU deployment for custom weights rather than serverless inference endpoints. Dedicated instances charge a flat hourly rate regardless of traffic volume. If your request volume is low, that fixed infrastructure cost can easily exceed what you would have spent on API tokens for a larger model.",
+  },
+  {
+    q: "What happens when my product requirements change after fine-tuning?",
+    a: "Changes to your application logic, output formats, or domain rules will cause model drift and degrade performance. You will need to curate a new training set, run another training job, and pay the associated compute and engineering costs again. If your feature set changes monthly, prompt engineering remains far more cost-effective.",
+  },
+  {
+    q: "Can fine-tuning replace a larger model entirely?",
+    a: "Fine-tuning improves a smaller model's adherence to specific formats, styles, and domain vocabulary, but it rarely imbues a small model with the raw reasoning capacity of a true frontier model. Test your fine-tuned model rigorously against complex edge cases before cutting off access to larger models, as accuracy failures carry hidden business costs.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-17',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          Fine-tuning versus prompt engineering: the unit economics
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          When your product relies on extensive system prompts and few-shot examples to guide model output, you are paying a heavy token tax on every single API request. Adding context increases input length, which scales your per-call variable cost linearly with volume. Fine-tuning a smaller base model shifts this expenditure from recurring runtime tokens to an upfront training fee. This guide walks through the exact arithmetic required to determine your operational break-even point.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-17 · 6 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The prompt overhead penalty</h2>
+        <p>Prompt engineering often relies on massive system instructions, formatting templates, and twelve to twenty few-shot examples to steer model behavior. If your base system prompt and examples total two thousand tokens, every single user request carries that baseline weight before a single word of unique user input is added. At scale, this repetitive overhead accounts for the vast majority of your daily token consumption. You pay for those identical thousand-plus tokens on every interaction, regardless of whether the user query is a single sentence or a multi-paragraph submission.</p>
+        <p>Consider an application handling one hundred thousand requests per month. If your prompt overhead sits at two thousand tokens per call, your system processes two hundred million tokens monthly purely for instructions and examples. Multiply that volume by the input token price of your chosen frontier model to find your baseline overhead cost. As your user base grows, this unbilled instruction weight compounds directly into your monthly API invoice, creating a permanent drag on your operational margins that no amount of code optimization can remove.</p>
+
+        <h2>The fine-tuning expenditure</h2>
+        <p>Fine-tuning alters the weights of a smaller, open-weights base model using a curated dataset of your input-output pairs. This process incurs a flat training cost based on the total token volume of your training set multiplied by the number of training epochs. Dataset preparation, cleaning, and validation require engineering hours, which represent a real labour expense even if you use managed training platforms. Once the custom weights are compiled and deployed to a dedicated endpoint, your runtime prompt no longer needs those twenty few-shot examples to achieve the same output quality.</p>
+        <p>Your runtime input shrinks dramatically because the instructions are now baked into the model parameters rather than supplied per request. If your input token count drops from three thousand tokens down to five hundred tokens per call, your variable cost per request falls by a corresponding fraction. The core financial question is whether the reduction in runtime token expenditure over your expected volume lifecycle exceeds the initial capital outlay required to train and host the custom model.</p>
+      </div>
+
+      <LlmApiCostCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The break-even equation</h2>
+        <p>To find your break-even point, establish the exact financial difference in variable cost between the two approaches. Subtract the new, leaner prompt token cost from the heavy prompt token cost to find your savings per request. Divide your total upfront fine-tuning and deployment setup cost by that per-request saving figure to reveal the exact number of calls required to recover your investment. If your monthly volume falls short of that threshold, fine-tuning is a net financial loss compared to simply paying for prompt tokens.</p>
+        <p>Factor in the hosting reality as well. Frontier models are billed purely on consumption, whereas fine-tuned open-weights models often require dedicated GPU instances running continuously, incurring hourly infrastructure fees whether traffic arrives or not. If your application experiences low utilization periods or unpredictable traffic spikes, fixed hosting expenses can quickly erase the savings gained from lower token counts. Always calculate your infrastructure baseline alongside your per-token reductions before committing to a training run.</p>
+
+        <h2>Maintenance and dataset drift</h2>
+        <p>Code changes and product updates inevitably alter the format and intent of user inputs over time. When your application logic shifts, a fine-tuned model begins to drift, producing formatting errors or degraded outputs because the training data no longer matches the live environment. Retraining requires assembling a fresh dataset, running another training job, and validating the output quality against your regression test suite. This lifecycle maintenance represents an ongoing operational cost that must be factored into your annual budget.</p>
+        <p>Prompt engineering avoids this specific form of technical debt because you can update instructions or examples instantly in your application code repository without retraining weights. If your product feature requirements change every two weeks, the agility of prompt engineering usually outweighs the token savings of a static fine-tuned model. Reserve fine-tuning for stable, mature tasks where input structures remain consistent for at least two to three quarters, ensuring the training investment amortizes across a stable operational window.</p>
+
+        <h2>Quality thresholds and model sizing</h2>
+        <p>Small base models often require fine-tuning simply to reach the baseline competence of a larger frontier model on your specific domain vocabulary. If a smaller model fails to understand your industry terminology or output strict JSON without extensive few-shot prompting, fine-tuning acts as a bridge to usability. However, if the fine-tuned smaller model still requires significant context to perform complex reasoning tasks, you may end up paying both the training cost and a heavy prompt token cost.</p>
+        <p>Test a fine-tuned candidate against a zero-shot prompt on a larger model using a validation set of at least two hundred representative test cases. Measure the error rate and the total token cost per successful output for both architectures. If the larger model achieves higher accuracy with a simple prompt at a lower total monthly cost than the fine-tuned infrastructure stack, abandon the training plan and stick with prompt engineering for that specific use case.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Audit your current system prompt and count the exact input token overhead per request.</li>
+          <li>Multiply your monthly request volume by your prompt overhead token cost to establish your baseline.</li>
+          <li>Obtain a fixed price quote or resource estimate for preparing your dataset and running the fine-tuning job.</li>
+          <li>Calculate the new runtime token cost using a stripped-down prompt on the fine-tuned model.</li>
+          <li>Add any dedicated hosting or endpoint maintenance fees to the fine-tuned monthly operational total.</li>
+          <li>Divide the upfront training expenditure by the monthly savings to confirm your break-even month.</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The LLM API cost calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://www.linum.ai/field-notes/pjit-21k" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Show HN: A decent text-to-image model trained for ~$20K (Apache 2.0 Weights)
+          </a>
+          (Hacker News, 287 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>

@@ -1,5 +1,23 @@
 {
-  "published": [],
+  "published": [
+    {
+      "date": "2026-11-17",
+      "slug": "fine-tune-vs-prompt-cost",
+      "title": "Fine-tuning versus prompting cost math",
+      "family": "AI cost",
+      "source": "Hacker News",
+      "source_url": "https://www.linum.ai/field-notes/pjit-21k",
+      "model": "gemini-3.5-flash-lite",
+      "published_at": "2026-11-17T10:45:54+00:00"
+    }
+  ],
   "skips": [],
-  "runs": []
+  "runs": [
+    {
+      "date": "2026-11-17",
+      "mode": "generate",
+      "slug": "fine-tune-vs-prompt-cost",
+      "model": "gemini-3.5-flash-lite"
+    }
+  ]
 }
