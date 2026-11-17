@@ -33,12 +33,14 @@
 | --- | --- |
 | Astro 7 + Tailwind 4 정적 사이트 | `npm run build` 오류 0 |
 | 공통 레이아웃(SEO·canonical·OG·JSON-LD·favicon) | 완료. 외부 스크립트 0개 |
-| 실전 가이드 + 내장 계산기 2종 | 완료 (아래 표) |
+| 실전 가이드 + 내장 계산기 3종 | 완료 (아래 표) |
 | `/llms.txt`, `/sitemap.xml`, `/robots.txt` | 엔드포인트로 자동 생성 (도메인 하드코딩 없음) |
 | 금칙어·구조·광고태그 배포 가드 | `scripts/forbidden_terms.py` |
-| 계산기 산술 단위 테스트 10개 | `scripts/test_calculations.ts` |
-| 계산기 DOM 배선 테스트 3개 | `scripts/test_dom.mjs` |
-| Cloudflare Pages 배포 워크플로 | `.github/workflows/deploy.yml` (시크릿 입력 전까지 비활성) |
+| 계산기 산술 단위 테스트 15개 | `scripts/test_calculations.ts` |
+| 계산기 DOM 배선 테스트 4개 | `scripts/test_dom.mjs` |
+| 파이프라인 오프라인 테스트 18개 | `scripts/test_pipeline.py` (npm test에 포함) |
+| 배포 | Cloudflare Pages **Git 연동** — `main` 푸시가 곧 배포 (워크플로 불필요) |
+| 일일 생성 워크플로 | `.github/workflows/daily-guide.yml` (KST 10:15 + 수동 실행) |
 | 오퍼 슬롯(제휴·P2 유입) | `src/data/monetization.ts` + `OfferSlot.astro` |
 
 ### 발행된 가이드
@@ -46,6 +48,7 @@
 | 경로 | 계산기 | 입력 → 출력 |
 | --- | --- | --- |
 | `/guides/ai-api-cost-calculator/` | LLM API 원가 계산기 | 일 요청 수, 입·출력 토큰, 100만 토큰당 단가, 캐시 적중률, 재시도율 → 월 청구액·요청당 원가·1,000건당 원가·항목별 분해 |
+| `/guides/payment-fee-calculator/` | 결제 수수료 계산기 | 월 결제 건수, 평균 결제액, % 수수료, 건당 고정 수수료, 환불 비율, 월 플랫폼 요금 → 월 수수료, 순매출, 실효 수수료율, 건당 수수료 |
 | `/guides/saas-break-even-calculator/` | SaaS 손익분기/ROI 계산기 | 좌석 수, 좌석당 월 요금, 초기 도입비, 좌석당 월 절감시간, 시급, 실제 주간 사용률 → 회수 개월, 월 순편익, 12개월 ROI, 손익분기 좌석수 |
 
 계산 로직은 `src/lib/calculations.ts` 한 곳에 있고, 페이지는 그 결과만 표시합니다.
