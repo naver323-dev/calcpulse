@@ -15,6 +15,11 @@ const site = Astro.site ?? new URL('https://calcpulse.pages.dev');
 const origin = site.origin;
 const canonical = new URL(Astro.url.pathname, site).href;
 
+// Google Analytics 4 (web stream "CalcPulse Web").
+// PUBLIC_GA_ID overrides the property at build time (Cloudflare Pages env var);
+// the literal is the live stream's measurement ID so a plain rebuild already reports.
+const gaId = import.meta.env.PUBLIC_GA_ID ?? 'G-LMHTBFGBQH';
+
 const siteGraph = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -69,10 +74,23 @@ const graphs = [siteGraph, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonL
     }
 
     <!--
-      No advertising network and no third-party scripts are loaded on this site.
-      Monetisation is affiliate/partner links and traffic to P2 (Gumroad) only, so the
-      first paint stays free of external requests. See src/data/monetization.ts.
+      No advertising network is loaded on this site: monetisation is affiliate/partner links and
+      traffic to P2 (Gumroad) only (see src/data/monetization.ts). The one third-party script is
+      Google Analytics 4 (gtag.js, aggregate pageview measurement) declared just below.
     -->
+    {gaId && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
+        <script is:inline define:vars={{ gaId }}>
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function gtag() {
+            window.dataLayer.push(arguments);
+          };
+          window.gtag('js', new Date());
+          window.gtag('config', gaId, { anonymize_ip: true });
+        </script>
+      </>
+    )}
   </head>
   <body class="min-h-screen flex flex-col">
     <header class="border-b border-ink-200 bg-white/80 backdrop-blur sticky top-0 z-10">
