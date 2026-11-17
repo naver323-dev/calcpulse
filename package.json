@@ -14,11 +14,12 @@
     "test:calc": "node scripts/test_calculations.ts",
     "test:dom": "node scripts/test_dom.mjs",
     "test:pipeline": "python3 scripts/test_pipeline.py",
-    "test": "npm run build && npm run test:calc && npm run test:dom && npm run guard && npm run test:samples && npm run test:pipeline",
+    "test": "npm run build && npm run test:calc && npm run test:dom && npm run guard && npm run test:samples && npm run test:pipeline && npm run test:queue",
     "collect": "python3 scripts/collect_topic.py",
     "generate": "python3 scripts/generate_guide.py",
     "sync:samples": "python3 scripts/sync_vault_samples.py --write",
-    "test:samples": "python3 scripts/sync_vault_samples.py --check"
+    "test:samples": "python3 scripts/sync_vault_samples.py --check",
+    "test:queue": "python3 scripts/test_queue.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",
