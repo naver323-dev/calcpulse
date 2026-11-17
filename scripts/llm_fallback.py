@@ -482,7 +482,7 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 1
     print("free-tier LLM check (no content is published)")
-    code = 0
+    code = 1  # flipped to 0 as soon as one tier answers: the chain is alive if any tier is
     for provider in provider_order():
         config = provider_config(provider)
         if config is None:
@@ -503,12 +503,11 @@ def main(argv: list[str]) -> int:
                 transport=http_post,
                 log=print,
             )
+            code = 0
             print(f"  ok {provider}/{model}: {text.strip()[:60]!r}")
         except ProviderError as exc:
-            code = 1
-            print(f"  ! {provider}/{model}: {exc}")
+            print(f"  ! {exc}")
         except Exception as exc:  # noqa: BLE001 - one bad tier must not hide the others
-            code = 1
             print(f"  ! {provider}/{model}: {type(exc).__name__}: {exc}")
     return code
 
