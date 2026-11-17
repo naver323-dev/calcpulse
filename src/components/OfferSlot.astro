@@ -1,0 +1,62 @@
+---
+import { activeOffers, hasAffiliate, type Offer } from '../data/monetization';
+
+interface Props {
+  /** Limit the slot to specific offer ids, in order. Default: every active offer. */
+  ids?: string[];
+  class?: string;
+}
+
+const { ids, class: className = '' } = Astro.props;
+
+const all = activeOffers();
+const list: Offer[] = ids
+  ? ids.map((id) => all.find((offer) => offer.id === id)).filter((offer): offer is Offer => Boolean(offer))
+  : all;
+
+const showsAffiliate = hasAffiliate(list.filter((offer) => offer.url !== ''));
+---
+
+{
+  list.length > 0 && (
+    <aside
+      class={`rounded-xl border border-ink-200 bg-white p-5 ${className}`}
+      aria-label="Related offers"
+    >
+      <div class="space-y-5">
+        {list.map((offer) =>
+          offer.url ? (
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">{offer.kicker}</p>
+              <a
+                href={offer.url}
+                class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700"
+                rel={offer.kind === 'affiliate' ? 'sponsored nofollow noopener' : 'noopener'}
+                target={offer.kind === 'affiliate' ? '_blank' : undefined}
+              >
+                {offer.title} →
+              </a>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600">{offer.body}</p>
+            </div>
+          ) : (
+            <div>
+              <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">{offer.kicker}</p>
+              <p class="mt-1 font-semibold text-ink-950">{offer.title}</p>
+              <p class="mt-1 text-sm leading-relaxed text-ink-600">{offer.body}</p>
+              <p class="mt-1 text-xs text-ink-400">Link opens when it goes on sale.</p>
+            </div>
+          ),
+        )}
+      </div>
+      {showsAffiliate && (
+        <p class="mt-4 border-t border-ink-100 pt-3 text-xs text-ink-400">
+          Partner links are paid. See the{' '}
+          <a href="/affiliate-disclosure/" class="underline hover:text-ink-600">
+            affiliate disclosure
+          </a>
+          .
+        </p>
+      )}
+    </aside>
+  )
+}

@@ -1,0 +1,374 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+
+const guide = guideBySlug('saas-break-even-calculator');
+
+const faq = [
+  {
+    q: 'Is “hours saved” a legitimate way to value a subscription?',
+    a: 'Only if the saved hours are reallocated to something you would otherwise pay for or lose. A tool that saves a team ten hours a month that nobody uses differently has saved zero money and some frustration. Use the hourly figure as a ceiling, then discount it for how much of the saving is real.',
+  },
+  {
+    q: 'Should one-off setup cost be in the payback calculation?',
+    a: 'Yes, if you want to know when the decision turns a profit rather than when the monthly line becomes positive. Setup, migration and training are cash out of the same budget, and leaving them out flatters every tool you are considering.',
+  },
+  {
+    q: 'Why does the calculator ask for an adoption rate?',
+    a: 'Because licences are bought per seat and used per person. If you pay for thirty seats and nine people log in monthly, the value per licence is a third of the headline claim. Enter the share you honestly expect to use it weekly.',
+  },
+  {
+    q: 'What payback period is reasonable?',
+    a: 'There is no universal threshold, but the shorter the contract and the smaller the switching cost, the more a long payback can be tolerated. A twelve-month commitment with a nine-month payback is a bet; a monthly contract with a nine-month payback is a decision you can reverse.',
+  },
+  {
+    q: 'Does this account for the cost of switching later?',
+    a: 'No. Migration effort, data export limits and retraining are real costs that appear when you leave, and they are usually worse than the sales page admits. If a tool would be painful to remove, treat the contract length as part of the price.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-17',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      SaaS &amp; tooling
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">SaaS &amp; tooling</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          {guide.h1}
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          Every tool purchase is a loan you give a vendor: money now, promised hours later. The only
+          two questions are how much time it has to return and how sure you are that it will. This
+          calculator answers the first; the guide is about the second.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed {guide.updated} · {guide.minutes} min read · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Payback period beats monthly cost</h2>
+        <p>
+          “$12 per user per month” is not a price, it is a rate. The price is what you have committed
+          before you can walk away: the subscription for as long as the contract runs, the migration
+          weekend, the training, and the month where nobody used it because the rollout was in
+          December.
+        </p>
+        <p>
+          The useful figure is <strong>payback months</strong>: how long the saved effort takes to
+          cover the setup cost and the subscription you have paid by then. A tool with a two-month
+          payback survives a bad quarter. A tool with a fourteen-month payback has to be right about
+          the future, and most tools are not.
+        </p>
+
+        <h2>The four numbers a vendor will not put in one table</h2>
+        <ol>
+          <li><strong>Seats you actually pay for</strong> versus seats that log in weekly.</li>
+          <li><strong>One-off cost</strong> — implementation, migration, training, the internal champion’s time.</li>
+          <li><strong>Hours saved per seat per month</strong>, measured on one real workflow rather than summed across a feature list.</li>
+          <li><strong>Loaded hourly rate</strong> — salary plus overhead, not the take-home figure.</li>
+        </ol>
+      </div>
+
+      <section
+        class="mt-10 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 shadow-sm"
+        aria-labelledby="calc-heading"
+      >
+        <h2 id="calc-heading" class="text-lg font-semibold text-ink-950">SaaS break-even calculator</h2>
+        <p class="mt-1 text-sm text-ink-600">
+          All figures in one currency. Nothing is sent anywhere; the maths runs on this page.
+        </p>
+
+        <form id="roi-form" class="mt-6 grid gap-4 sm:grid-cols-2" novalidate>
+          <div class="calc-field">
+            <label for="seats" class="block text-sm font-medium text-ink-800">Paid seats</label>
+            <input id="seats" type="number" min="1" step="1" value="10" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="price" class="block text-sm font-medium text-ink-800">Price per seat, per month</label>
+            <input id="price" type="number" min="0" step="0.01" value="25" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="setup" class="block text-sm font-medium text-ink-800">
+              One-off cost (setup, migration, training)
+            </label>
+            <input id="setup" type="number" min="0" step="1" value="1500" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="hours" class="block text-sm font-medium text-ink-800">
+              Hours saved per used seat, per month
+            </label>
+            <input id="hours" type="number" min="0" step="0.1" value="4" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="rate" class="block text-sm font-medium text-ink-800">Loaded hourly rate</label>
+            <input id="rate" type="number" min="0" step="1" value="40" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="adoption" class="block text-sm font-medium text-ink-800">
+              Weekly adoption <span class="text-ink-400">(% of paid seats)</span>
+            </label>
+            <input id="adoption" type="number" min="0" max="100" step="1" value="70" inputmode="numeric" />
+          </div>
+        </form>
+
+        <noscript>
+          <p class="mt-6 rounded-lg bg-ink-100 px-4 py-3 text-sm text-ink-800">
+            This calculator does the arithmetic in your browser, so it needs JavaScript. The formula is
+            written out in the guide above if you would rather do it by hand.
+          </p>
+        </noscript>
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-3" aria-live="polite">
+          <div class="result-card rounded-xl bg-ink-950 p-5 text-white">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Payback</p>
+            <p id="out-payback" class="mt-2 text-3xl font-semibold">—</p>
+            <p id="out-payback-note" class="mt-1 text-xs text-ink-400">months to recover all cash</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Net per month</p>
+            <p id="out-net" class="mt-2 text-3xl font-semibold text-ink-950">—</p>
+            <p id="out-monthly-cost" class="mt-1 text-xs text-ink-400">subscription: —</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">12-month ROI</p>
+            <p id="out-roi" class="mt-2 text-3xl font-semibold text-ink-950">—</p>
+            <p id="out-year" class="mt-1 text-xs text-ink-400">—</p>
+          </div>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Twelve-month cash view</caption>
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-ink-400">
+                <th scope="col" class="py-2 pr-4 font-medium">Line</th>
+                <th scope="col" class="py-2 font-medium text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink-100 text-ink-800">
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Value actually used (12 months)</th>
+                <td id="row-value" class="py-2 text-right tabular-nums">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Subscriptions (12 months)</th>
+                <td id="row-subs" class="py-2 text-right tabular-nums">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">One-off cost</th>
+                <td id="row-setup" class="py-2 text-right tabular-nums">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Net after 12 months</th>
+                <td id="row-net12" class="py-2 text-right tabular-nums font-medium">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p id="verdict" class="mt-4 rounded-lg bg-ink-50 px-4 py-3 text-sm text-ink-700">—</p>
+      </section>
+
+      <div class="prose prose-ink mt-12 max-w-3xl">
+        <h2>Reading the result honestly</h2>
+        <p>
+          A payback of under three months with monthly billing is an easy yes. A payback beyond the
+          contract length is a no, regardless of what the demo did. The interesting case is the
+          middle: a payback inside the contract but close to it, where the decision rests on the
+          adoption rate and on whether the saved hours are actually spent on something.
+        </p>
+        <p>
+          Move the adoption slider down to what the team did with the last tool you bought. That
+          number is usually the difference between a strong business case and a plausible one.
+        </p>
+
+        <h2>Three corrections that change the answer</h2>
+        <h3>1. Value unused hours at zero</h3>
+        <p>
+          Hours saved is a claim about capacity, not cash. Unless someone was hired to absorb that
+          capacity or a deadline was met because of it, the saving has not happened. Many teams
+          discount claimed savings by half for this reason alone.
+        </p>
+        <h3>2. Count the switching cost twice</h3>
+        <p>
+          Once when you adopt and once when you leave. Vendors rarely mention the second. A tool with
+          a proprietary export format has a hidden exit fee made of engineering days.
+        </p>
+        <h3>3. Separate the number from the risk</h3>
+        <p>
+          A positive ROI with a twelve-month, non-refundable contract is a different proposition from
+          the same ROI month to month. If the arithmetic is close, buy the version of the deal you can
+          leave.
+        </p>
+
+        <h2>When the tool is obviously worth it</h2>
+        <p>
+          One case deserves a shortcut: a tool that removes a task nobody should be doing at all —
+          manual reconciliation, re-keying data, copying numbers between two systems. There the
+          payback calculation mostly confirms what you already know, and the real work is measuring how
+          often the automation fails, not whether it saves time.
+        </p>
+
+        <h2>What this calculator leaves out</h2>
+        <p>
+          The internal cost of administering the tool, the training that recurs when staff turn over,
+          and any price increase at renewal. Add ten to twenty per cent to the subscription line if any
+          of those apply to you; it is a small correction that keeps the estimate from being
+          optimistic by accident.
+        </p>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Next</p>
+        <a href="/guides/ai-api-cost-calculator/" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          What your LLM feature actually costs per month →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          If the tool you are pricing is an AI feature rather than a subscription, start with the token
+          bill instead.
+        </p>
+      </aside>
+    <OfferSlot class="mt-4 max-w-3xl" />
+
+      </article>
+  </div>
+</BaseLayout>
+
+<script>
+  import { computeSaasRoi } from '../../lib/calculations';
+
+  const form = document.getElementById('roi-form') as HTMLFormElement | null;
+
+  if (form) {
+    const ids = ['seats', 'price', 'setup', 'hours', 'rate', 'adoption'] as const;
+    type Id = (typeof ids)[number];
+
+    const el = (id: Id) => document.getElementById(id) as HTMLInputElement | null;
+    const out = (id: string) => document.getElementById(id) as HTMLElement | null;
+
+    const num = (id: Id, fallback = 0): number => {
+      const node = el(id);
+      if (!node) return fallback;
+      const value = Number.parseFloat(node.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    };
+
+    const money = (value: number): string =>
+      Math.round(value).toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 0,
+      });
+
+    const compute = () => {
+      const result = computeSaasRoi({
+        seats: num('seats', 1),
+        pricePerSeat: num('price'),
+        oneOffCost: num('setup'),
+        hoursSavedPerSeat: num('hours'),
+        hourlyRate: num('rate'),
+        adoptionRate: num('adoption') / 100,
+      });
+
+      const set = (id: string, text: string) => {
+        const node = out(id);
+        if (node) node.textContent = text;
+      };
+
+      if (result.paybackMonths === null) {
+        set('out-payback', 'Never');
+      } else if (result.paybackMonths < 0.1) {
+        set('out-payback', 'Immediate');
+      } else {
+        set('out-payback', `${result.paybackMonths.toFixed(1)} mo`);
+      }
+
+      set(
+        'out-payback-note',
+        result.breakEvenUsedSeats === null
+          ? 'no saving entered, so nothing breaks even'
+          : `break-even at ${result.breakEvenUsedSeats.toFixed(1)} actively used seats`,
+      );
+      set('out-net', money(result.netMonthly));
+      set('out-monthly-cost', `subscription: ${money(result.monthlySubscription)}/mo`);
+      set(
+        'out-roi',
+        result.roiPercent === null
+          ? '—'
+          : `${result.roiPercent >= 0 ? '+' : ''}${result.roiPercent.toFixed(0)}%`,
+      );
+      set('out-year', `net ${money(result.net12)} after 12 months`);
+
+      set('row-value', money(result.value12));
+      set('row-subs', money(result.subscriptions12));
+      set('row-setup', money(num('setup')));
+      set('row-net12', money(result.net12));
+
+      const verdict = out('verdict');
+      if (verdict) {
+        const adoptionLabel = Math.round(Math.min(100, num('adoption')));
+        let text: string;
+        if (result.netMonthly <= 0) {
+          text =
+            'At this adoption and saving, the subscription costs more per month than the time it returns. The price, the seat count or the claimed saving has to change before the deal works.';
+        } else if (result.net12 <= 0) {
+          text =
+            'The monthly line is positive, but the one-off cost is still unpaid after a year. That is a bet on year two — only take it on a contract you can leave.';
+        } else {
+          text = `The tool clears its one-off cost in ${(result.paybackMonths ?? 0).toFixed(1)} months and is ${money(result.net12)} ahead after a year, assuming ${adoptionLabel}% of seats use it weekly and an hour saved is worth ${money(num('rate'))}.`;
+        }
+        verdict.textContent = text;
+      }
+    };
+
+    form.addEventListener('input', compute);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    compute();
+  }
+</script>

@@ -1,0 +1,455 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+
+const guide = guideBySlug('ai-api-cost-calculator');
+
+const faq = [
+  {
+    q: 'Do I need the provider’s price list to use the calculator?',
+    a: 'Yes, and that is deliberate. Token prices change and differ per model, region and contract, so the calculator takes the numbers you paste in rather than carrying a table that silently goes stale. The default values are only there to show the shape of the answer.',
+  },
+  {
+    q: 'Why does the calculator ask for a retry rate?',
+    a: 'Production traffic is not clean traffic. Timeouts, rate limits and malformed JSON all produce a second call that is billed like the first. A 5% retry rate on a small bill looks irrelevant; at scale it is a line item you can reduce by fixing validation instead of buying more quota.',
+  },
+  {
+    q: 'How does prompt caching change the estimate?',
+    a: 'A cached prefix is billed at a lower rate than fresh input tokens, and only on the cached portion. Enter the share of your input that repeats (a system prompt, a document, a policy file) and the cached rate your provider charges; the calculator splits the input line into fresh and cached before multiplying.',
+  },
+  {
+    q: 'Should I budget on tokens per request or on total tokens per month?',
+    a: 'Both, in that order. Token counts per request are what you control in the prompt; monthly totals are the consequence. Estimating from monthly totals hides whether the bill is driven by volume or by a bloated prompt, which are fixed in completely different ways.',
+  },
+  {
+    q: 'What does the estimate leave out?',
+    a: 'Non-token charges: per-image or per-minute audio pricing, storage and retrieval for embeddings, vector database hosting, egress, and the cost of the humans who review failures. The last one is usually larger than the API bill in the first six months.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-17',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+
+const workedExample = [
+  { label: 'Input tokens per request', value: '1,200' },
+  { label: 'Output tokens per request', value: '400' },
+  { label: 'Requests per day', value: '2,000' },
+  { label: 'Retry overhead', value: '5%' },
+  { label: 'Cache hit on input', value: '60%' },
+  { label: 'Days per month', value: '30' },
+];
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI API cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          {guide.h1}
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          A token bill is three multiplications and one habit. The habit is estimating from a demo
+          instead of from production traffic. This guide sets out the multiplication, then hands you
+          the calculator to run your own numbers through.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed {guide.updated} · {guide.minutes} min read · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The number that matters is cost per resolved request</h2>
+        <p>
+          API spend on its own is not a useful figure. A $400 monthly bill is cheap if it replaces
+          four thousand support tickets and expensive if it powers a novelty chat box nobody returns
+          to. What you want to know is what one <em>finished</em> request costs, and then how many
+          finished requests a month buys.
+        </p>
+        <p>
+          So the calculator below returns the monthly bill, the cost of a single request, and the
+          cost per thousand requests. If the per-request figure looks fine and the monthly one does
+          not, your problem is volume or retries. If the per-request figure is already high, your
+          problem is the prompt.
+        </p>
+
+        <h2>Five inputs, in the order they move the answer</h2>
+        <ol>
+          <li>
+            <strong>Output tokens.</strong> Output is usually priced several times higher than input.
+            A verbose answer costs more than a long document you paste in.
+          </li>
+          <li>
+            <strong>Input tokens per request.</strong> This is where a system prompt, retrieved
+            documents and chat history pile up, and it grows quietly as history accumulates.
+          </li>
+          <li>
+            <strong>Requests per day.</strong> Straight-line volume, and the one number a marketing
+            push changes overnight.
+          </li>
+          <li>
+            <strong>Retry and failure rate.</strong> Every timeout you re-send is billed twice.
+          </li>
+          <li>
+            <strong>Cache hit rate.</strong> The only input that reliably lowers the bill without
+            changing behaviour.
+          </li>
+        </ol>
+      </div>
+
+      <!-- Calculator -->
+      <section
+        class="mt-10 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 shadow-sm"
+        aria-labelledby="calc-heading"
+      >
+        <h2 id="calc-heading" class="text-lg font-semibold text-ink-950">LLM API cost calculator</h2>
+        <p class="mt-1 text-sm text-ink-600">
+          Enter the rates from your provider’s current price page. Defaults are placeholders, not a
+          price list.
+        </p>
+
+        <form id="api-cost-form" class="mt-6 grid gap-4 sm:grid-cols-2" novalidate>
+          <div class="calc-field">
+            <label for="reqDay" class="block text-sm font-medium text-ink-800">Requests per day</label>
+            <input id="reqDay" name="reqDay" type="number" min="0" step="1" value="2000" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="days" class="block text-sm font-medium text-ink-800">Days per month</label>
+            <input id="days" name="days" type="number" min="1" max="31" step="1" value="30" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="inTok" class="block text-sm font-medium text-ink-800">Input tokens per request</label>
+            <input id="inTok" name="inTok" type="number" min="0" step="1" value="1200" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="outTok" class="block text-sm font-medium text-ink-800">Output tokens per request</label>
+            <input id="outTok" name="outTok" type="number" min="0" step="1" value="400" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="inPrice" class="block text-sm font-medium text-ink-800">
+              Input price, USD per 1M tokens
+            </label>
+            <input id="inPrice" name="inPrice" type="number" min="0" step="0.01" value="0.15" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="outPrice" class="block text-sm font-medium text-ink-800">
+              Output price, USD per 1M tokens
+            </label>
+            <input id="outPrice" name="outPrice" type="number" min="0" step="0.01" value="0.60" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="cacheHit" class="block text-sm font-medium text-ink-800">
+              Cache hit on input <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="cacheHit" name="cacheHit" type="number" min="0" max="100" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="cachePrice" class="block text-sm font-medium text-ink-800">
+              Cached input price, USD per 1M tokens
+            </label>
+            <input id="cachePrice" name="cachePrice" type="number" min="0" step="0.001" value="0.015" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="retry" class="block text-sm font-medium text-ink-800">
+              Retry / failed-call overhead <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="retry" name="retry" type="number" min="0" max="200" step="1" value="5" inputmode="numeric" />
+          </div>
+          <div class="calc-field sm:self-end">
+            <p class="text-xs text-ink-400 leading-relaxed">
+              Cache fields are ignored when the hit rate is 0, so you can leave them alone.
+            </p>
+          </div>
+        </form>
+
+        <noscript>
+          <p class="mt-6 rounded-lg bg-ink-100 px-4 py-3 text-sm text-ink-800">
+            This calculator does the arithmetic in your browser, so it needs JavaScript. The formula is
+            written out in the guide above if you would rather do it by hand.
+          </p>
+        </noscript>
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-3" aria-live="polite">
+          <div class="result-card rounded-xl bg-ink-950 p-5 text-white">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Monthly bill</p>
+            <p id="out-total" class="mt-2 text-3xl font-semibold">$0.00</p>
+            <p id="out-annual" class="mt-1 text-xs text-ink-400">$0.00 per year</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Per request</p>
+            <p id="out-per-req" class="mt-2 text-3xl font-semibold text-ink-950">$0.0000</p>
+            <p id="out-billed" class="mt-1 text-xs text-ink-400">0 billed calls</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Per 1,000 requests</p>
+            <p id="out-per-1k" class="mt-2 text-3xl font-semibold text-ink-950">$0.00</p>
+            <p id="out-double" class="mt-1 text-xs text-ink-400">at 2× volume: $0.00</p>
+          </div>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Cost breakdown by line item</caption>
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-ink-400">
+                <th scope="col" class="py-2 pr-4 font-medium">Line</th>
+                <th scope="col" class="py-2 pr-4 font-medium">Month</th>
+                <th scope="col" class="py-2 font-medium">Share</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink-100 text-ink-800">
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Input, fresh</th>
+                <td id="row-in" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-in" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Input, cached</th>
+                <td id="row-cache" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-cache" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Output</th>
+                <td id="row-out" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-out" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Retries</th>
+                <td id="row-retry" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-retry" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-xs text-ink-400">
+          Rounded to the cent. The calculator does not store or transmit anything; reload the page and
+          it resets.
+        </p>
+      </section>
+
+      <div class="prose prose-ink mt-12 max-w-3xl">
+        <h2>A worked example, so you can sanity-check the output</h2>
+        <p>
+          Suppose a support assistant receives the traffic below. Nothing here is unusual for an
+          internal tool in its second month.
+        </p>
+        <ul>
+          {workedExample.map((row) => <li>{row.label}: <strong>{row.value}</strong></li>)}
+        </ul>
+        <p>
+          Put those into the calculator with a fresh input rate of $0.15 per million tokens, a cached
+          rate of $0.015 and an output rate of $0.60. The bill lands at <strong>$20.34 a month</strong> —
+          $0.0003 per request — and about 71% of it is the output line even though output is only a
+          quarter of the tokens. That ratio is the single most common surprise in the first invoice.
+        </p>
+        <p>
+          Multiply the per-request figure by the number of requests you expect after the tool is
+          rolled out to every team, not the number you see in the pilot. A pilot with twelve users is
+          not a sample of a company of six hundred; it is a sample of the twelve people who will
+          complain loudest if it breaks.
+        </p>
+
+        <h2>Where estimates go wrong, in practice</h2>
+        <h3>1. Chat history grows the input line silently</h3>
+        <p>
+          A conversation that resends the last twenty turns pays for those turns again on every call.
+          Token per request is not a constant; it is a function of how long the session runs. If your
+          product has long sessions, estimate input tokens from the tenth turn, not the first.
+        </p>
+        <h3>2. Agent loops multiply the request count</h3>
+        <p>
+          A single user action that triggers a planning call, three tool calls and a summary is five
+          billed requests, not one. Count model calls per user action before you multiply by users.
+        </p>
+        <h3>3. Structured output invites retries</h3>
+        <p>
+          If you parse JSON out of a free-form answer, some percentage of answers will not parse, and
+          the retry is billed. Either constrain the output format at the API level or accept the
+          retry cost knowingly; do not discover it on the invoice.
+        </p>
+        <h3>4. The tokens are the cheap part</h3>
+        <p>
+          At the rates above, a thousand requests cost less than a coffee. The expensive parts are the
+          engineering time to build the thing, the evaluation set to trust it, and the human who
+          handles what it gets wrong. Budget those separately or the API bill will look like a
+          rounding error next to the payroll you added.
+        </p>
+
+        <h2>Three changes that lower the bill without lowering quality</h2>
+        <ol>
+          <li>
+            <strong>Cut the system prompt.</strong> Prompts accreted during development are usually
+            30–50% longer than they need to be, and every token of them is paid on every call.
+          </li>
+          <li>
+            <strong>Cache what repeats.</strong> Policies, manuals and style guides are identical
+            across requests. If your provider bills cached input at a discount, moving those blocks
+            into the cached prefix is the highest-return change available.
+          </li>
+          <li>
+            <strong>Route by difficulty.</strong> Most requests do not need the largest model. Send
+            the easy half to a smaller one and measure whether anyone notices; the exceptions are
+            usually detectable by length or by a confidence signal.
+          </li>
+        </ol>
+
+        <h2>What this estimate leaves out</h2>
+        <p>
+          Embeddings and vector storage, image and audio pricing (billed per unit, not per token),
+          egress from object storage, observability tooling, and the cost of a human reading the
+          failures. If any of those are large for you, add them on top of the total rather than
+          assuming the calculator covered them.
+        </p>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Next</p>
+        <a href="/guides/saas-break-even-calculator/" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          When does a paid tool pay for itself? →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The other side of the same question: what the subscription has to return before it earns
+          its place in the stack.
+        </p>
+      </aside>
+    <OfferSlot class="mt-4 max-w-3xl" />
+
+      </article>
+  </div>
+</BaseLayout>
+
+<script>
+  import { computeApiCost } from '../../lib/calculations';
+
+  const form = document.getElementById('api-cost-form') as HTMLFormElement | null;
+
+  if (form) {
+    const ids = [
+      'reqDay',
+      'days',
+      'inTok',
+      'outTok',
+      'inPrice',
+      'outPrice',
+      'cacheHit',
+      'cachePrice',
+      'retry',
+    ] as const;
+
+    type Id = (typeof ids)[number];
+
+    const el = (id: Id) => document.getElementById(id) as HTMLInputElement | null;
+    const out = (id: string) => document.getElementById(id) as HTMLElement | null;
+
+    const num = (id: Id, fallback = 0): number => {
+      const node = el(id);
+      if (!node) return fallback;
+      const value = Number.parseFloat(node.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    };
+
+    const usd = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: value < 1 ? 4 : 2,
+        maximumFractionDigits: value < 1 ? 4 : 2,
+      });
+
+    const usdShort = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    const count = (value: number): string => Math.round(value).toLocaleString('en-US');
+
+    const compute = () => {
+      const result = computeApiCost({
+        requestsPerDay: num('reqDay'),
+        daysPerMonth: num('days', 30),
+        inputTokens: num('inTok'),
+        outputTokens: num('outTok'),
+        inputPricePerMillion: num('inPrice'),
+        outputPricePerMillion: num('outPrice'),
+        cacheHitRate: num('cacheHit') / 100,
+        cachedPricePerMillion: num('cachePrice'),
+        retryRate: num('retry') / 100,
+      });
+
+      const total = result.monthlyTotal;
+      const pct = (part: number) => (total > 0 ? `${((part / total) * 100).toFixed(1)}%` : '—');
+
+      const set = (id: string, text: string) => {
+        const node = out(id);
+        if (node) node.textContent = text;
+      };
+
+      set('out-total', usdShort(total));
+      set('out-annual', `${usdShort(result.annualTotal)} per year`);
+      set('out-per-req', usd(result.perRequest));
+      set('out-per-1k', usdShort(result.perThousandRequests));
+      set('out-billed', `${count(result.billedCalls)} billed calls`);
+      set('out-double', `at 2× volume: ${usdShort(total * 2)}`);
+
+      set('row-in', usdShort(result.freshInputCost));
+      set('row-cache', usdShort(result.cachedInputCost));
+      set('row-out', usdShort(result.outputCost));
+      set('row-retry', usdShort(result.retryCost));
+
+      set('share-in', pct(result.freshInputCost));
+      set('share-cache', pct(result.cachedInputCost));
+      set('share-out', pct(result.outputCost));
+      set('share-retry', pct(result.retryCost));
+    };
+
+    form.addEventListener('input', compute);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    compute();
+  }
+</script>
