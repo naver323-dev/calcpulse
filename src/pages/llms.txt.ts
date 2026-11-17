@@ -28,7 +28,8 @@ ${guideLines}
 
 ## Products
 
-- [The workflow vault](${origin}/vault/): ten system prompts and ten automation snippets sold as files ($14, Gumroad). Ten of the twenty files are described on the page and three are published in full as free samples.
+- [The workflow vault](${origin}/vault/): ten system prompts and ten automation snippets sold as files ($14, Gumroad). The page lists all twenty and publishes three of them in full as free samples.
+- [Open-data weekly packs](${origin}/datasets/): fourteen public macro and AI-ecosystem series rebuilt every Monday with the week-over-week change, a 12-period z-score and an outlier flag, sold as a $9 CSV pack through Gumroad. Six series are published free on the page, including a downloadable sample CSV.
 
 ## Reference pages
 

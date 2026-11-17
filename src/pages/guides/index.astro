@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { guides } from '../../data/guides';
 import VaultCallout from '../../components/VaultCallout.astro';
+import DatasetsCallout from '../../components/DatasetsCallout.astro';
 
 const description =
   'Every CalcPulse guide, grouped by topic. Each page carries a working calculator, its assumptions and the sources behind the figures.';
@@ -38,5 +39,6 @@ const description =
     </ul>
 
     <VaultCallout class="mt-12" />
+    <DatasetsCallout class="mt-4" />
   </div>
 </BaseLayout>

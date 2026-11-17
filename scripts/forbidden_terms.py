@@ -60,6 +60,7 @@ REQUIRED_PAGES: tuple[tuple[str, str], ...] = (
     ("guides/saas-break-even-calculator/index.html", "SaaS break-even calculator"),
     ("guides/payment-fee-calculator/index.html", "Payment fee calculator"),
     ("vault/index.html", "Ten prompts that hold their shape"),
+    ("datasets/index.html", "Open data, cleaned weekly"),
     ("about/index.html", "About CalcPulse"),
     ("privacy/index.html", "Calculator inputs"),
     ("affiliate-disclosure/index.html", "Affiliate disclosure"),
@@ -83,6 +84,10 @@ HARD_BANS: tuple[str, ...] = (
     'href="#"',
     "TODO(",
     "<input type=\"password\"",
+    # The publisher's legal name is never published: the site, the products and
+    # their metadata speak as CalcPulse / CalcPulse Editorial Team only.
+    "김호빈",
+    "hobeen",
 )
 
 TAG_RE = re.compile(r"<[^>]+>")

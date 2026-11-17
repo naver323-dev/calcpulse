@@ -1,0 +1,91 @@
+{
+  "week": "2026-W47",
+  "totalSeries": 14,
+  "sampleSeries": 6,
+  "sources": [
+    "ECB euro reference rates (via Frankfurter)",
+    "FRED (Federal Reserve Bank of St. Louis)",
+    "GitHub REST search (unauthenticated)"
+  ],
+  "fetchedAt": "2026-11-17T10:56:08Z",
+  "rows": [
+    {
+      "id": "FRED:DGS10",
+      "label": "US 10-year Treasury yield",
+      "category": "Rates",
+      "unit": "% p.a.",
+      "latestDate": "2026-11-13",
+      "latest": 5.15,
+      "prev": 4.86,
+      "changePct": 5.967078,
+      "fourWeekPct": 1.178782,
+      "zScore": 2.715,
+      "isOutlier": true
+    },
+    {
+      "id": "FRED:DEXKOUS",
+      "label": "USD/KRW exchange rate",
+      "category": "FX",
+      "unit": "KRW per USD",
+      "latestDate": "2026-11-13",
+      "latest": 1336.58,
+      "prev": 1361.89,
+      "changePct": -1.858447,
+      "fourWeekPct": 0.19115,
+      "zScore": -0.894,
+      "isOutlier": false
+    },
+    {
+      "id": "ECB:EURKRW",
+      "label": "EUR/KRW exchange rate",
+      "category": "FX",
+      "unit": "KRW per EUR",
+      "latestDate": "2026-11-16",
+      "latest": 1470.218296,
+      "prev": 1507.454501,
+      "changePct": -2.470138,
+      "fourWeekPct": -1.483022,
+      "zScore": 0.147,
+      "isOutlier": false
+    },
+    {
+      "id": "FRED:VIXCLS",
+      "label": "CBOE volatility index (VIX)",
+      "category": "Risk",
+      "unit": "index points",
+      "latestDate": "2026-11-13",
+      "latest": 19.3,
+      "prev": 25.64,
+      "changePct": -24.726989,
+      "fourWeekPct": -3.451726,
+      "zScore": -2.236,
+      "isOutlier": true
+    },
+    {
+      "id": "FRED:NASDAQCOM",
+      "label": "Nasdaq Composite",
+      "category": "Equity",
+      "unit": "index points",
+      "latestDate": "2026-11-16",
+      "latest": 24509.76,
+      "prev": 25253.14,
+      "changePct": -2.943713,
+      "fourWeekPct": -7.268503,
+      "zScore": -1.057,
+      "isOutlier": false
+    },
+    {
+      "id": "GH:topic:llm",
+      "label": "New repositories tagged topic:llm",
+      "category": "AI ecosystem",
+      "unit": "repositories created per week",
+      "latestDate": "2026-11-16",
+      "latest": 5386.0,
+      "prev": 5015.0,
+      "changePct": 7.397807,
+      "fourWeekPct": 6.716862,
+      "zScore": 0.577,
+      "isOutlier": false
+    }
+  ]
+}

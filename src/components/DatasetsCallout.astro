@@ -1,0 +1,44 @@
+---
+/**
+ * The P3 upsell, same shape as the P2 callout.
+ *
+ * It points at /datasets/ on this site, not at Gumroad directly: the datasets page is
+ * where the free six-series sample lives, so a reader can see the actual numbers before
+ * meeting a checkout. The Gumroad link itself is set once, by environment variable, on
+ * that page.
+ */
+interface Props {
+  heading?: string;
+  class?: string;
+}
+
+const {
+  heading = 'The weekly open-data pack: 14 series, diffed',
+  class: className = '',
+} = Astro.props;
+---
+
+<section class={`rounded-xl border border-ink-200 bg-white p-6 ${className}`}>
+  <div class="grid gap-5 sm:grid-cols-5 sm:items-center">
+    <div class="sm:col-span-3">
+      <p class="text-xs font-semibold uppercase tracking-wider text-pulse-600">
+        P3 · Open data
+      </p>
+      <h2 class="mt-1 text-lg font-semibold text-ink-950">{heading}</h2>
+      <p class="mt-2 text-sm leading-relaxed text-ink-600">
+        Rates, inflation, five won cross-rates, the Nasdaq, the VIX and three GitHub AI-ecosystem
+        counts — rebuilt every Monday with the week-over-week change, a 12-period z-score and an
+        outlier flag already computed. Six of the fourteen series are free to read and download.
+      </p>
+    </div>
+    <div class="sm:col-span-2 sm:text-right">
+      <a
+        href="/datasets/"
+        class="inline-flex items-center rounded-lg bg-pulse-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-pulse-700"
+      >
+        See this week's numbers →
+      </a>
+      <p class="mt-2 text-xs text-ink-400">Full pack $9, rebuilt weekly</p>
+    </div>
+  </div>
+</section>

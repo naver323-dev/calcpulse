@@ -53,14 +53,16 @@ export const offers: Offer[] = [
   },
   {
     id: 'csv',
-    kicker: 'P3 · Gumroad',
+    kicker: 'P3 · Open data',
     title: 'Open-data weekly packs',
-    body: 'Cleaned weekly CSVs with the change log attached — for people who need the numbers, not the commentary. Sold on the same Gumroad account.',
-    cta: 'See the packs',
-    // TODO(P3): paste the Gumroad product URL once the first pack is published.
-    url: '',
+    body: 'Fourteen public macro and AI-ecosystem series, cleaned weekly with the week-over-week change, a z-score and an outlier flag. Six of them are free to read and download on the datasets page; the full pack is $9 on Gumroad.',
+    cta: 'See the free sample',
+    // Internal funnel: /datasets/ carries the free sample and, once the listing is
+    // live, the Gumroad button. The listing URL is set once by
+    // PUBLIC_GUMROAD_DATASET_URL at build time, so this offer never needs editing.
+    url: '/datasets/',
     kind: 'own',
-    enabled: false,
+    enabled: true,
   },
   {
     id: 'make',

@@ -8,6 +8,7 @@ export const GET: APIRoute = ({ site }) => {
     { path: '/', lastmod: '2026-11-17', priority: '1.0' },
     { path: '/guides/', lastmod: '2026-11-17', priority: '0.8' },
     { path: '/vault/', lastmod: '2026-11-17', priority: '0.7' },
+    { path: '/datasets/', lastmod: '2026-11-17', priority: '0.7' },
     { path: '/about/', lastmod: '2026-11-17', priority: '0.3' },
     { path: '/affiliate-disclosure/', lastmod: '2026-11-17', priority: '0.2' },
     { path: '/privacy/', lastmod: '2026-11-17', priority: '0.2' },
