@@ -1,0 +1,82 @@
+{
+  "slug": "prompt-cache-hit-rate-value",
+  "title": "What a Prompt Cache Hit Is Actually Worth",
+  "h1": "A cache hit is a discount on a line you can measure",
+  "description": "Work out what a prompt-cache discount saves per month, why the hit rate drifts down, and which part of the saving your provider keeps.",
+  "summary": "A cache hit pays only on the input tokens that repeat, at the discount your provider charges, so the saving has to be measured on the repeated prefix rather than on the whole bill.",
+  "keywords": [
+    "prompt caching cost",
+    "cache hit rate value",
+    "llm input token discount",
+    "api bill reduction"
+  ],
+  "lede": "Caching is sold as a discount on input tokens, and it is, but only on the exact prefix that repeats. That makes the saving a measurement rather than a setting: you have to know how much of each request is identical to the last one before the discount means anything.",
+  "sections": [
+    {
+      "heading": "The cache hit rate is a price, not a setting",
+      "paragraphs": [
+        "Every provider that offers prompt caching prices the cached portion of the input differently from the fresh portion, and the gap is usually large enough to matter. The discount applies to a prefix of the request, matched exactly, and only while the provider keeps it warm. Nothing about the feature tells you how much of your own traffic qualifies, which is why the hit rate belongs in an estimate rather than in a launch checklist.",
+        "The practical consequence is that caching is worth nothing until the hit rate is measured on production traffic, and worth a great deal once it is. A team that guesses twenty percent and a team that measures seventy percent are running the same model at very different monthly costs, with the same output quality and no visible difference in the product."
+      ]
+    },
+    {
+      "heading": "What a cache hit is actually worth",
+      "paragraphs": [
+        "Take a request with two thousand input tokens and four hundred output tokens, priced at fifteen cents and sixty cents per million respectively, with cached input at a tenth of the fresh rate. That ratio is illustrative, not a quote: paste your provider's numbers in before you decide anything.",
+        "At ten thousand requests a day, the input line is thirty million tokens a month and the output line is twelve million. Without caching the input costs a few dollars and the output costs several times more. Raise the hit rate to eighty percent and the input line falls by roughly the discounted share, while the output line does not move at all. The saving is real, capped, and smaller than the invoice line that dominates it.",
+        "A useful sanity check before the calculator: if the input line is ten percent of the bill, a perfect cache can save at most ten percent of that line, which is one percent of the bill. That is not a reason to skip the work, but it is a reason to fix the fixed cost first, which in most products is the output tokens and the retries."
+      ]
+    },
+    {
+      "heading": "Where the saving disappears",
+      "paragraphs": [
+        "The first way to lose the discount is an unstable prefix. A system prompt assembled with a timestamp, a user name or a shuffled list of tool definitions changes on every request, so the provider never sees the same prefix twice and the hit rate stays at zero. The feature is working; the prompt is the problem.",
+        "The second is a short conversation. Caching rewards long, repeated context such as a policy document, a code repository summary or a fixed instruction block. If your average request carries six hundred tokens, the cached portion is too small for the discount to survive the rounding on a monthly statement.",
+        "The third is a provider-side retention window that your traffic pattern does not fit. Cache entries expire, and a workload that arrives in bursts separated by quiet hours pays the fresh rate on the first request of each burst without noticing."
+      ]
+    },
+    {
+      "heading": "Read the number off a statement, not a guess",
+      "paragraphs": [
+        "The hit rate you can trust is the one your provider reports, cross-checked against the invoice: take the cached token count from the usage response, divide it by total input tokens, and compare the resulting input charge with the bill. If the two disagree by more than a few percent, you are measuring the wrong thing and the estimate is fiction.",
+        "Do that for one week before you promise anyone a saving. A week is long enough to capture the weekday pattern, the retry storms and the occasional batch job that quietly doubles the volume, and short enough that nobody has rebuilt the prompt in the meantime.",
+        "Keep the measurement in the same place as the estimate. A spreadsheet that holds the measured hit rate, the fresh rate and the cached rate, dated and with the source of each figure, turns a pricing argument into a two minute conversation. A number repeated from a blog post, however confident it sounds, does the opposite."
+      ]
+    },
+    {
+      "heading": "The contract question behind the discount",
+      "paragraphs": [
+        "Cached input is usually billed at a lower rate, occasionally with a separate storage charge per hour and a minimum retention period. Those terms decide whether the discount is a saving or a rounding error in the other direction, and they differ between providers and tiers.",
+        "Read the pricing page for storage and for the minimum cache lifetime before switching a workload onto the feature. If the storage charge is per token per hour, a large cached document that is read twice a day can cost more than it saves, which is the one case where the discount is negative. The calculator takes both rates as inputs for exactly that reason.",
+        "One more term worth reading twice: what happens to the cached content itself. A document held in the provider's cache is still your document, and the retention terms describe how long it stays there and who can reach it. That is a data question sitting underneath a pricing question, and it usually decides the answer for anything containing customer records."
+      ]
+    }
+  ],
+  "checklist": [
+    "Divide cached input tokens by total input tokens for one week of production traffic and record the number.",
+    "Check whether your provider charges for cache storage separately, and at what retention window.",
+    "Look for a timestamp, request id or randomised tool list inside the first paragraph of the system prompt.",
+    "Compare the cached line on the invoice against the usage field before promising a saving to anyone.",
+    "Run the estimate again with a hit rate half of what you measured, and see whether the decision still holds."
+  ],
+  "faq": [
+    {
+      "q": "Does a higher cache hit rate lower the output cost too?",
+      "a": "No. The discount applies to the input tokens that repeat. Output tokens are generated fresh on every request and are billed at the output rate, which is normally several times the input rate, so a cache improvement moves a smaller line than the one that dominates most bills."
+    },
+    {
+      "q": "Why is my cache hit rate zero when caching is enabled?",
+      "a": "The prefix is almost certainly changing between requests. A timestamp, a session identifier, a shuffled tool list or a user-specific greeting at the top of the prompt is enough to invalidate the match. Move everything variable to the end of the prompt and measure again over a full day of traffic."
+    },
+    {
+      "q": "Is cached input always cheaper per token?",
+      "a": "Per token, usually, but the feature can come with a storage charge and a minimum retention period. If you cache a large document that is read rarely, the storage charge can exceed the discount. Put both rates into the calculator rather than assuming the cached rate is the whole story."
+    },
+    {
+      "q": "How much of my traffic should I expect to cache?",
+      "a": "It depends on how much of each request is identical to the previous one. Workloads with a long fixed instruction block and a short user question can reach a high hit rate, while chat products with growing history usually settle much lower. Measure for a week instead of adopting a benchmark from someone else's product."
+    }
+  ],
+  "minutes": 6,
+  "topic": "AI cost"
+}

@@ -35,6 +35,21 @@ FORBIDDEN_TERMS: tuple[str, ...] = (
     "방" + "산",
     "조" + "달청",
     "병" + "역",
+    # Gambling, adult content and outright illegality: not the site's subject and not something
+    # the daily generator may drift into when a source story is spicy.
+    "도" + "박",
+    "카" + "지노",
+    "음" + "란",
+    "성인" + " 콘텐츠",
+    "포" + "르노",
+    "불법" + " 도박",
+    "자금" + "세탁",
+    "gambling",
+    "casino",
+    "sports betting",
+    "pornograph",
+    "adult content",
+    "money laundering",
 )
 
 # Pages that must exist after a build, with the marker text they must contain.
@@ -43,6 +58,7 @@ REQUIRED_PAGES: tuple[tuple[str, str], ...] = (
     ("guides/index.html", "Long-form workings"),
     ("guides/ai-api-cost-calculator/index.html", "LLM API cost calculator"),
     ("guides/saas-break-even-calculator/index.html", "SaaS break-even calculator"),
+    ("guides/payment-fee-calculator/index.html", "Payment fee calculator"),
     ("about/index.html", "About CalcPulse"),
     ("privacy/index.html", "Calculator inputs"),
     ("affiliate-disclosure/index.html", "Affiliate disclosure"),

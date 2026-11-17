@@ -114,20 +114,36 @@ canonical 누락, 광고 네트워크 태그(`googlesyndication` 계열), 카드
 
 ---
 
-## 4. 주간 파이프라인(2주차 작업 예정)
+## 4. 일일 자동 수집·생성·배포 파이프라인 (2주차)
 
-이번 단계에서는 만들지 않았습니다. 다음 순서로 붙이면 됩니다.
+매일 KST 10:15에 GitHub Actions(`.github/workflows/daily-guide.yml`)가 1회 실행되어
+가이드 1편을 만들고, 모든 검증을 통과한 경우에만 `main`에 커밋·푸시합니다. 푸시가 곧
+Cloudflare Pages 배포입니다.
 
-1. `collect/` — Google Trends RSS, GitHub/HN API, 공공 API 변경분 수집
-2. `generate/` — Gemini Flash 1~2콜로 제목 후보 → 1개 선택 → 본문·FAQ·JSON-LD 초안
-3. `render/` — Astro 빌드 (초안은 `src/content/drafts/`에 커밋)
-4. `publish/` — `npm run guard` 통과 시에만 배포 + IndexNow 제출
-5. 한도 가드: Gemini 호출 일 10회 상한, 한도 도달 시 그날 발행 건너뛰기(실패 아님)
+| 단계 | 파일 | 하는 일 |
+| --- | --- | --- |
+| 수집 | `scripts/collect_topic.py` | Hacker News(Algolia)·GitHub·Google Trends에서 주제 1건 선정. 요일 로테이션으로 세 주제(AI 원가 / SaaS·툴 / 생활금융)를 돌아가며 쓰고, 이미 발행한 슬러그·제목·키워드·출처 URL과 겹치면 버립니다 |
+| 생성 | `scripts/generate_guide.py` | `gemini-3.8-flash` → 실패 시 `gemini-3.5-flash-lite`(무료 등급, Search 그라운딩 미사용). JSON 초안 → 검증 실패 시 1회 수정 요청 |
+| 검증 | 같은 파일 | 슬러그·길이·문단·FAQ 구조, 링크 금지, Astro를 깨는 문자 금지, 그리고 `scripts/forbidden_terms.py`의 금칙어 목록을 **그대로 import**해 사전 차단 |
+| 렌더 | `src/pages/guides/<slug>.astro` + `src/data/guides.ts` | 실제 사이트 구조 그대로 생성. 주제에 맞는 계산기 컴포넌트를 본문에 넣고, StackVerdict 링크와 다른 계산기 가이드 내부 링크를 붙입니다 |
+| 게이트 | `npm test` | 빌드 + 산술 + DOM + 금칙어 가드 + 파이프라인 테스트. 실패하면 생성 파일을 되돌리고 커밋하지 않습니다 |
+| 발행 | `git commit` → `push` | `--publish`일 때만. 커밋 메시지는 가이드 제목 |
 
-`scripts/forbidden_terms.py`가 3번과 4번 사이에 들어가며, 금칙어 목록은 코드에 고정되어
-프롬프트 변경으로 흔들리지 않습니다.
+무료 한도 보호: 429/쿼터 응답은 실패가 아니라 **그날 건너뛰기(exit 0)**로 끝납니다.
+1회 실행 최대 1편, 하루 1편 상한은 `scripts/pipeline_state.json`이 기억합니다.
 
----
+로컬 명령:
+
+```bash
+python3 scripts/collect_topic.py                 # 오늘의 주제만 확인
+python3 scripts/generate_guide.py --collect-only # 수집까지
+python3 scripts/generate_guide.py --dry-run      # API 없이 픽스처로 렌더+게이트 후 되돌리기
+python3 scripts/generate_guide.py --publish      # 실제 발행(커밋·푸시)
+python3 scripts/generate_guide.py --self-test    # 검증기 자체 테스트
+```
+
+계산기는 세 개입니다: LLM API 원가, SaaS 손익분기/ROI, 결제 수수료. 각 주제가 정확히
+하나의 계산기와 짝을 이뤄, 생성되는 가이드는 항상 "계산기가 붙은 페이지"가 됩니다.
 
 ## 5. 이번 단계에서 확인한 외부 사실
 

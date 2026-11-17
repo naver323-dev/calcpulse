@@ -8,7 +8,7 @@
  * change in the formula has to be justified here as well as in the page prose.
  */
 import assert from 'node:assert/strict';
-import { computeApiCost, computeSaasRoi } from '../src/lib/calculations.ts';
+import { computeApiCost, computePaymentFees, computeSaasRoi } from '../src/lib/calculations.ts';
 
 let passed = 0;
 const check = (name: string, fn: () => void) => {
@@ -196,6 +196,101 @@ check('break-even used seats equals subscription divided by value per seat', () 
   });
   // 250 / (4 h × $40) = 1.5625 used seats
   close(result.breakEvenUsedSeats ?? -1, 250 / 160, 'break-even used seats');
+});
+
+console.log('computePaymentFees');
+
+check('flat case: percentage plus fixed fee on 1,000 charges', () => {
+  // 1,000 × $40 = $40,000 gross; 5% refunded → $38,000 banked.
+  // 2.9% of $40,000 = $1,160; 1,000 × $0.30 = $300; total $1,460.
+  const result = computePaymentFees({
+    transactionsPerMonth: 1000,
+    averageSale: 40,
+    percentFee: 0.029,
+    fixedFee: 0.3,
+    refundRate: 0.05,
+    platformFee: 0,
+    refundedFeeReturnRate: 0,
+  });
+  close(result.grossVolume, 40000, 'gross');
+  close(result.refundedVolume, 2000, 'refunded volume');
+  close(result.netVolume, 38000, 'net volume');
+  close(result.percentFees, 1160, 'percent fees');
+  close(result.fixedFees, 300, 'fixed fees');
+  close(result.totalFees, 1460, 'total fees');
+  close(result.netRevenue, 36540, 'net revenue');
+  close(result.effectiveRate, 0.0365, 'effective rate');
+  close(result.feePerTransaction, 1.46, 'fee per transaction');
+});
+
+check('a monthly platform fee lands on top of the per-charge fees', () => {
+  const result = computePaymentFees({
+    transactionsPerMonth: 1000,
+    averageSale: 40,
+    percentFee: 0.029,
+    fixedFee: 0.3,
+    refundRate: 0.05,
+    platformFee: 49,
+    refundedFeeReturnRate: 0,
+  });
+  close(result.totalFees, 1509, 'total fees');
+  close(result.netRevenue, 36491, 'net revenue');
+  close(result.effectiveRate, 1509 / 40000, 'effective rate');
+});
+
+check('refunds do not return the percentage fee unless the processor says so', () => {
+  const withoutReturn = computePaymentFees({
+    transactionsPerMonth: 500,
+    averageSale: 80,
+    percentFee: 0.03,
+    fixedFee: 0.25,
+    refundRate: 0.2,
+    platformFee: 0,
+    refundedFeeReturnRate: 0,
+  });
+  // $40,000 gross, $8,000 refunded; the 3% on the refunded $8,000 ($240) stays paid.
+  close(withoutReturn.lostFeeOnRefunds, 240, 'lost fee on refunds');
+  close(withoutReturn.netVolume, 32000, 'net volume');
+
+  const withReturn = computePaymentFees({
+    transactionsPerMonth: 500,
+    averageSale: 80,
+    percentFee: 0.03,
+    fixedFee: 0.25,
+    refundRate: 0.2,
+    platformFee: 0,
+    refundedFeeReturnRate: 1,
+  });
+  close(withReturn.lostFeeOnRefunds, 0, 'nothing lost when the fee is returned');
+});
+
+check('zero charges yields zero rates and no division by zero', () => {
+  const result = computePaymentFees({
+    transactionsPerMonth: 0,
+    averageSale: 0,
+    percentFee: 0.029,
+    fixedFee: 0.3,
+    refundRate: 0.05,
+    platformFee: 0,
+    refundedFeeReturnRate: 0,
+  });
+  close(result.totalFees, 0, 'fees');
+  close(result.effectiveRate, 0, 'rate');
+  close(result.feePerTransaction, 0, 'per transaction');
+});
+
+check('negative and NaN inputs fall back to zero', () => {
+  const result = computePaymentFees({
+    transactionsPerMonth: -10,
+    averageSale: Number.NaN,
+    percentFee: 0.029,
+    fixedFee: 0.3,
+    refundRate: 0.05,
+    platformFee: 0,
+    refundedFeeReturnRate: 0,
+  });
+  close(result.grossVolume, 0, 'gross');
+  close(result.netRevenue, 0, 'net');
 });
 
 console.log(`\n${passed} checks passed`);

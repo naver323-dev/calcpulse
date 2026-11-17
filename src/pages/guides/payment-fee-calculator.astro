@@ -1,0 +1,195 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import PaymentFeeCalculator from '../../components/PaymentFeeCalculator.astro';
+
+const guide = guideBySlug('payment-fee-calculator');
+
+const faq = [
+  {
+    q: 'Why is my effective rate higher than the rate on the fee page?',
+    a: 'Because the headline rate is only the percentage part. The fixed fee per charge, the flat monthly platform fee and the percentage kept on refunded sales all land on the same statement. Divide the total fees by the gross volume you charged and you get the number that actually reduces your revenue.',
+  },
+  {
+    q: 'Does a refund return the processing fee?',
+    a: 'Usually not the percentage part, and often not the fixed part either. The processor handled the original charge, so the fee stands; you return the sale amount to the customer and keep paying for the transaction. Enter 0 for the returned share unless your contract explicitly says otherwise, then check the first refund on a statement.',
+  },
+  {
+    q: 'When does the fixed fee matter more than the percentage?',
+    a: 'On small tickets. At 2.9% plus 30 cents, a $10 sale costs 59 cents (5.9%) while a $400 sale costs $11.90 (2.98%). If your average order is small, the fixed fee is the lever: bundling, minimum order values or a lower fixed-fee plan change the answer more than a tenth of a percent on the percentage.',
+  },
+  {
+    q: 'Should the platform fee be in this calculator?',
+    a: 'Yes, if it is charged monthly whether or not you sell. It behaves like rent rather than a transaction cost, and leaving it out is the most common way a fee estimate comes in a few dozen dollars optimistic every month.',
+  },
+  {
+    q: 'What does this leave out?',
+    a: 'Chargebacks and their fees, currency conversion, payouts to a bank in another country, reserve holds, financing products, and the tax you collect on behalf of a jurisdiction. Each is billed separately and each can exceed the processing fee in a bad month.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-17',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+
+const workedExample = [
+  { label: 'Charges per month', value: '1,000' },
+  { label: 'Average sale', value: '$40' },
+  { label: 'Percentage fee', value: '2.9%' },
+  { label: 'Fixed fee per charge', value: '$0.30' },
+  { label: 'Refunded share', value: '5%' },
+  { label: 'Monthly platform fee', value: '$0' },
+];
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      Payment fees
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">Small-business finance</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          {guide.h1}
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          A processor quotes one rate and takes three. The percentage, the fixed fee and the flat
+          monthly charge all leave your account, and the rate you actually pay is the total divided
+          by the volume you charged. This guide works through that arithmetic, then hands you the
+          calculator to run your own statement.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed {guide.updated} · {guide.minutes} min read · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The rate on the fee page is not the rate you pay</h2>
+        <p>
+          Every processor publishes a headline percentage and a fixed amount per charge. Neither is
+          your cost. Your cost is the sum of those two across a month of real charges, plus whatever
+          monthly fee the account carries, divided by the money you put through. That quotient — the
+          effective rate — is the only figure comparable across processors, and it is the one that
+          never appears on the pricing page.
+        </p>
+        <p>
+          The gap between the headline and the effective rate is not a rounding error. With a $40
+          average sale and 2.9% plus 30 cents, the effective rate is 3.65% before any monthly fee,
+          because the fixed charge adds three quarters of a percent to every small ticket.
+        </p>
+
+        <h2>The fixed fee is a tax on small tickets</h2>
+        <p>
+          A fixed fee does not scale with the sale, so it hurts small sales most. At 2.9% plus 30
+          cents, a $10 charge loses 5.9% to fees and a $400 charge loses 2.98%. Two businesses on the
+          same contract can therefore pay very different effective rates, and the difference is the
+          average order value rather than the negotiation.
+        </p>
+        <p>
+          This is why a lower rate on a higher per-charge fee is often a worse deal for a shop with
+          cheap items. Run both contracts through the calculator with your own average sale before
+          believing the percentage.
+        </p>
+
+        <h2>Refunds cost money twice</h2>
+        <p>
+          Returning a sale to a customer does not return the processing fee. On most contracts the
+          percentage fee stands, and the fixed fee usually does as well, so a refunded charge costs
+          the fee plus the refunded amount. In the calculator, the refunded share reduces your net
+          volume and the fee on that volume stays in the total.
+        </p>
+        <p>
+          A business refunding one sale in twenty is paying that fee on the full volume while banking
+          ninety-five percent of it. Nothing dramatic, but it belongs in the estimate rather than in
+          the surprise column of the monthly statement.
+        </p>
+      </div>
+
+      <PaymentFeeCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>A worked example, so you can sanity-check the output</h2>
+        <p>
+          Suppose a small shop takes the traffic below. Nothing here is unusual for a business whose
+          customers buy one to three items at a time.
+        </p>
+        <ul>
+          {workedExample.map((row) => <li>{row.label}: <strong>{row.value}</strong></li>)}
+        </ul>
+        <p>
+          That is <strong>$40,000</strong> charged, <strong>$38,000</strong> banked after refunds, and
+          <strong>$1,460</strong> kept by the processor — $0.30 per charge plus 2.9% of every charge,
+          refunded ones included. The effective rate is <strong>3.65%</strong>: three quarters of a
+          point above the headline number, all of it the fixed fee.
+        </p>
+        <p>
+          Change one input at a time and watch which line moves. Doubling the average sale at the same
+          number of charges halves the fixed-fee share; keeping the average sale and doubling the
+          charge count doubles everything. If the effective rate bothers you, the average sale is
+          usually the input you can actually do something about this quarter.
+        </p>
+
+        <h2>What this estimate leaves out</h2>
+        <p>
+          Chargeback fees, currency conversion when a customer pays in another currency, payouts to a
+          bank abroad, rolling reserves held against future disputes, and any financing product attached
+          to the account. Those lines are real and occasionally larger than the processing fee itself,
+          so read one full statement before treating the calculator as the whole bill.
+        </p>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Next</p>
+        <a href="/guides/saas-break-even-calculator/" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          When does a paid tool pay for itself? →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The other recurring line on the same statement: what the subscription has to return before
+          it earns its place.
+        </p>
+      </aside>
+    <OfferSlot class="mt-4 max-w-3xl" />
+
+      </article>
+  </div>
+</BaseLayout>

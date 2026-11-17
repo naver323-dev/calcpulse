@@ -1,0 +1,232 @@
+---
+/**
+ * The LLM API cost calculator block, shared by every guide that needs it.
+ *
+ * The markup and the wiring are the original page code moved here unchanged so the
+ * daily pipeline can render the same calculator on a generated guide. The script
+ * bundles per page that imports this component; ids stay the ones
+ * scripts/test_dom.mjs drives.
+ */
+---
+
+      <section
+        class="mt-10 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 shadow-sm"
+        aria-labelledby="calc-heading"
+      >
+        <h2 id="calc-heading" class="text-lg font-semibold text-ink-950">LLM API cost calculator</h2>
+        <p class="mt-1 text-sm text-ink-600">
+          Enter the rates from your provider’s current price page. Defaults are placeholders, not a
+          price list.
+        </p>
+
+        <form id="api-cost-form" class="mt-6 grid gap-4 sm:grid-cols-2" novalidate>
+          <div class="calc-field">
+            <label for="reqDay" class="block text-sm font-medium text-ink-800">Requests per day</label>
+            <input id="reqDay" name="reqDay" type="number" min="0" step="1" value="2000" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="days" class="block text-sm font-medium text-ink-800">Days per month</label>
+            <input id="days" name="days" type="number" min="1" max="31" step="1" value="30" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="inTok" class="block text-sm font-medium text-ink-800">Input tokens per request</label>
+            <input id="inTok" name="inTok" type="number" min="0" step="1" value="1200" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="outTok" class="block text-sm font-medium text-ink-800">Output tokens per request</label>
+            <input id="outTok" name="outTok" type="number" min="0" step="1" value="400" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="inPrice" class="block text-sm font-medium text-ink-800">
+              Input price, USD per 1M tokens
+            </label>
+            <input id="inPrice" name="inPrice" type="number" min="0" step="0.01" value="0.15" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="outPrice" class="block text-sm font-medium text-ink-800">
+              Output price, USD per 1M tokens
+            </label>
+            <input id="outPrice" name="outPrice" type="number" min="0" step="0.01" value="0.60" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="cacheHit" class="block text-sm font-medium text-ink-800">
+              Cache hit on input <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="cacheHit" name="cacheHit" type="number" min="0" max="100" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="cachePrice" class="block text-sm font-medium text-ink-800">
+              Cached input price, USD per 1M tokens
+            </label>
+            <input id="cachePrice" name="cachePrice" type="number" min="0" step="0.001" value="0.015" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="retry" class="block text-sm font-medium text-ink-800">
+              Retry / failed-call overhead <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="retry" name="retry" type="number" min="0" max="200" step="1" value="5" inputmode="numeric" />
+          </div>
+          <div class="calc-field sm:self-end">
+            <p class="text-xs text-ink-400 leading-relaxed">
+              Cache fields are ignored when the hit rate is 0, so you can leave them alone.
+            </p>
+          </div>
+        </form>
+
+        <noscript>
+          <p class="mt-6 rounded-lg bg-ink-100 px-4 py-3 text-sm text-ink-800">
+            This calculator does the arithmetic in your browser, so it needs JavaScript. The formula is
+            written out in the guide above if you would rather do it by hand.
+          </p>
+        </noscript>
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-3" aria-live="polite">
+          <div class="result-card rounded-xl bg-ink-950 p-5 text-white">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Monthly bill</p>
+            <p id="out-total" class="mt-2 text-3xl font-semibold">$0.00</p>
+            <p id="out-annual" class="mt-1 text-xs text-ink-400">$0.00 per year</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Per request</p>
+            <p id="out-per-req" class="mt-2 text-3xl font-semibold text-ink-950">$0.0000</p>
+            <p id="out-billed" class="mt-1 text-xs text-ink-400">0 billed calls</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Per 1,000 requests</p>
+            <p id="out-per-1k" class="mt-2 text-3xl font-semibold text-ink-950">$0.00</p>
+            <p id="out-double" class="mt-1 text-xs text-ink-400">at 2× volume: $0.00</p>
+          </div>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Cost breakdown by line item</caption>
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-ink-400">
+                <th scope="col" class="py-2 pr-4 font-medium">Line</th>
+                <th scope="col" class="py-2 pr-4 font-medium">Month</th>
+                <th scope="col" class="py-2 font-medium">Share</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink-100 text-ink-800">
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Input, fresh</th>
+                <td id="row-in" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-in" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Input, cached</th>
+                <td id="row-cache" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-cache" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Output</th>
+                <td id="row-out" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-out" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Retries</th>
+                <td id="row-retry" class="py-2 pr-4 tabular-nums">$0.00</td>
+                <td id="share-retry" class="py-2 tabular-nums text-ink-600">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-xs text-ink-400">
+          Rounded to the cent. The calculator does not store or transmit anything; reload the page and
+          it resets.
+        </p>
+      </section>
+
+<script>
+  import { computeApiCost } from '../lib/calculations';
+
+  const form = document.getElementById('api-cost-form') as HTMLFormElement | null;
+
+  if (form) {
+    const ids = [
+      'reqDay',
+      'days',
+      'inTok',
+      'outTok',
+      'inPrice',
+      'outPrice',
+      'cacheHit',
+      'cachePrice',
+      'retry',
+    ] as const;
+
+    type Id = (typeof ids)[number];
+
+    const el = (id: Id) => document.getElementById(id) as HTMLInputElement | null;
+    const out = (id: string) => document.getElementById(id) as HTMLElement | null;
+
+    const num = (id: Id, fallback = 0): number => {
+      const node = el(id);
+      if (!node) return fallback;
+      const value = Number.parseFloat(node.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    };
+
+    const usd = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: value < 1 ? 4 : 2,
+        maximumFractionDigits: value < 1 ? 4 : 2,
+      });
+
+    const usdShort = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    const count = (value: number): string => Math.round(value).toLocaleString('en-US');
+
+    const compute = () => {
+      const result = computeApiCost({
+        requestsPerDay: num('reqDay'),
+        daysPerMonth: num('days', 30),
+        inputTokens: num('inTok'),
+        outputTokens: num('outTok'),
+        inputPricePerMillion: num('inPrice'),
+        outputPricePerMillion: num('outPrice'),
+        cacheHitRate: num('cacheHit') / 100,
+        cachedPricePerMillion: num('cachePrice'),
+        retryRate: num('retry') / 100,
+      });
+
+      const total = result.monthlyTotal;
+      const pct = (part: number) => (total > 0 ? `${((part / total) * 100).toFixed(1)}%` : '—');
+
+      const set = (id: string, text: string) => {
+        const node = out(id);
+        if (node) node.textContent = text;
+      };
+
+      set('out-total', usdShort(total));
+      set('out-annual', `${usdShort(result.annualTotal)} per year`);
+      set('out-per-req', usd(result.perRequest));
+      set('out-per-1k', usdShort(result.perThousandRequests));
+      set('out-billed', `${count(result.billedCalls)} billed calls`);
+      set('out-double', `at 2× volume: ${usdShort(total * 2)}`);
+
+      set('row-in', usdShort(result.freshInputCost));
+      set('row-cache', usdShort(result.cachedInputCost));
+      set('row-out', usdShort(result.outputCost));
+      set('row-retry', usdShort(result.retryCost));
+
+      set('share-in', pct(result.freshInputCost));
+      set('share-cache', pct(result.cachedInputCost));
+      set('share-out', pct(result.outputCost));
+      set('share-retry', pct(result.retryCost));
+    };
+
+    form.addEventListener('input', compute);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    compute();
+  }
+</script>

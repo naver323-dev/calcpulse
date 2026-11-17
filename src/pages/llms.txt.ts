@@ -19,6 +19,7 @@ export const GET: APIRoute = ({ site }) => {
 
 - Estimating the monthly cost of an LLM feature from requests per day, token counts, retry overhead and prompt-cache hit rate.
 - Judging whether a paid tool earns its price, using seats, subscription price, one-off setup cost, hours saved and honest weekly adoption.
+- Seeing what a payment processor keeps: percentage and fixed fees, refunded volume and a monthly platform fee, turned into total fees and an effective rate.
 - Quoting a defensible number rather than a vendor headline: the calculators return per-request unit cost, payback months and 12-month ROI.
 
 ## Guides

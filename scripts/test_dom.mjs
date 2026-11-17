@@ -65,7 +65,7 @@ const check = async (name, fn) => {
 
 await check('API cost calculator updates every result element', async () => {
   const { text } = await runPage({
-    bundlePrefix: 'ai-api-cost-calculator',
+    bundlePrefix: 'LlmApiCostCalculator',
     inputs: {
       __formId: 'api-cost-form',
       reqDay: '2000',
@@ -110,7 +110,7 @@ await check('API cost calculator updates every result element', async () => {
 
 await check('SaaS calculator reports payback and verdict', async () => {
   const { text } = await runPage({
-    bundlePrefix: 'saas-break-even-calculator',
+    bundlePrefix: 'SaasRoiCalculator',
     inputs: {
       __formId: 'roi-form',
       seats: '10',
@@ -147,7 +147,7 @@ await check('SaaS calculator reports payback and verdict', async () => {
 
 await check('SaaS calculator says "Never" when the subscription outruns the saving', async () => {
   const { text } = await runPage({
-    bundlePrefix: 'saas-break-even-calculator',
+    bundlePrefix: 'SaasRoiCalculator',
     inputs: {
       __formId: 'roi-form',
       seats: '50',
@@ -163,6 +163,47 @@ await check('SaaS calculator says "Never" when the subscription outruns the savi
 
   assert.equal(text('out-payback'), 'Never');
   assert.match(text('verdict'), /costs more per month/);
+});
+
+await check('Payment fee calculator reports fees, effective rate and net', async () => {
+  const { text } = await runPage({
+    bundlePrefix: 'PaymentFeeCalculator',
+    inputs: {
+      __formId: 'fee-form',
+      txMonth: '1000',
+      avgSale: '40',
+      pctFee: '2.9',
+      fixedFee: '0.30',
+      refundRate: '5',
+      platformFee: '0',
+      feeReturn: '0',
+    },
+    outputs: [
+      'out-fees',
+      'out-gross',
+      'out-net',
+      'out-net-note',
+      'out-rate',
+      'out-per-tx',
+      'row-pct',
+      'row-fixed',
+      'row-platform',
+      'row-refund',
+      'share-pct',
+      'share-fixed',
+      'share-platform',
+    ],
+    description: 'fee',
+  });
+
+  // 1,000 × $40 = $40,000; 2.9% = $1,160; 1,000 × $0.30 = $300; total $1,460 (3.65%).
+  // 5% refunded = $2,000; net revenue $40,000 − $2,000 − $1,460 = $36,540.
+  assert.equal(text('out-fees'), '$1,460.00');
+  assert.equal(text('out-rate'), '3.65%');
+  assert.equal(text('out-net'), '$36,540.00');
+  assert.equal(text('out-per-tx'), '$1.46 per charge');
+  assert.equal(text('row-pct'), '$1,160.00');
+  assert.notEqual(text('share-pct'), '—');
 });
 
 console.log(`\n${passed} DOM checks passed`);

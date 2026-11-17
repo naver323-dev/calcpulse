@@ -149,3 +149,80 @@ export function computeSaasRoi(input: SaasRoiInput): SaasRoiResult {
     roiPercent: spend12 > 0 ? (net12 / spend12) * 100 : null,
   };
 }
+
+export interface PaymentFeeInput {
+  /** Charges per month. */
+  transactionsPerMonth: number;
+  /** Average sale in USD. */
+  averageSale: number;
+  /** Percentage fee, e.g. 0.029 for 2.9%. */
+  percentFee: number;
+  /** Fixed fee per charge in USD, e.g. 0.30. */
+  fixedFee: number;
+  /** Share of charges later refunded, 0–1. */
+  refundRate: number;
+  /** Flat monthly platform or account fee in USD. */
+  platformFee: number;
+  /** Share of the percentage fee the processor returns on a refund, 0–1. */
+  refundedFeeReturnRate: number;
+}
+
+export interface PaymentFeeResult {
+  grossVolume: number;
+  refundedVolume: number;
+  netVolume: number;
+  percentFees: number;
+  fixedFees: number;
+  /** Percentage fee on refunded charges that the processor keeps. */
+  lostFeeOnRefunds: number;
+  platformFees: number;
+  totalFees: number;
+  netRevenue: number;
+  /** totalFees ÷ grossVolume, as a share (0.0365 = 3.65%). */
+  effectiveRate: number;
+  feePerTransaction: number;
+  netPerTransaction: number;
+}
+
+/**
+ * What a payment processor keeps per month.
+ *
+ * The percentage fee is charged on the original charge and is not returned when the sale is
+ * refunded, which is why refunds show up as a cost of their own rather than as a smaller
+ * volume: the fixed fee is normally kept too unless the processor says otherwise.
+ */
+export function computePaymentFees(input: PaymentFeeInput): PaymentFeeResult {
+  const transactions = Math.max(0, safe(input.transactionsPerMonth));
+  const averageSale = safe(input.averageSale);
+  const percentFee = Math.min(1, Math.max(0, safe(input.percentFee)));
+  const fixedFee = safe(input.fixedFee);
+  const refundRate = Math.min(1, Math.max(0, safe(input.refundRate)));
+  const platformFee = safe(input.platformFee);
+  const refundedFeeReturnRate = Math.min(1, Math.max(0, safe(input.refundedFeeReturnRate)));
+
+  const grossVolume = transactions * averageSale;
+  const refundedVolume = grossVolume * refundRate;
+  const netVolume = grossVolume - refundedVolume;
+
+  const percentFees = grossVolume * percentFee;
+  const fixedFees = transactions * fixedFee;
+  const lostFeeOnRefunds = refundedVolume * percentFee * (1 - refundedFeeReturnRate);
+  const totalFees = percentFees + fixedFees + platformFee;
+
+  const netRevenue = netVolume - totalFees;
+
+  return {
+    grossVolume,
+    refundedVolume,
+    netVolume,
+    percentFees,
+    fixedFees,
+    lostFeeOnRefunds,
+    platformFees: platformFee,
+    totalFees,
+    netRevenue,
+    effectiveRate: grossVolume > 0 ? totalFees / grossVolume : 0,
+    feePerTransaction: transactions > 0 ? totalFees / transactions : 0,
+    netPerTransaction: transactions > 0 ? netRevenue / transactions : 0,
+  };
+}

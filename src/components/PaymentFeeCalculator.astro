@@ -1,0 +1,211 @@
+---
+/**
+ * Payment fee calculator block: what a processor keeps per month.
+ *
+ * Same conventions as the other two calculators on the site — every figure is an input,
+ * nothing is sent anywhere, and the arithmetic lives in src/lib/calculations.ts so it can
+ * be tested without a browser. scripts/test_dom.mjs drives the ids used here.
+ */
+---
+
+      <section
+        class="mt-10 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 shadow-sm"
+        aria-labelledby="calc-heading"
+      >
+        <h2 id="calc-heading" class="text-lg font-semibold text-ink-950">Payment fee calculator</h2>
+        <p class="mt-1 text-sm text-ink-600">
+          Use the rates on your processor's current fee page. Defaults are placeholders, not a
+          price list.
+        </p>
+
+        <form id="fee-form" class="mt-6 grid gap-4 sm:grid-cols-2" novalidate>
+          <div class="calc-field">
+            <label for="txMonth" class="block text-sm font-medium text-ink-800">Charges per month</label>
+            <input id="txMonth" type="number" min="0" step="1" value="1000" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="avgSale" class="block text-sm font-medium text-ink-800">Average sale</label>
+            <input id="avgSale" type="number" min="0" step="0.01" value="40" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="pctFee" class="block text-sm font-medium text-ink-800">
+              Percentage fee <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="pctFee" type="number" min="0" max="100" step="0.01" value="2.9" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="fixedFee" class="block text-sm font-medium text-ink-800">Fixed fee per charge</label>
+            <input id="fixedFee" type="number" min="0" step="0.01" value="0.30" inputmode="decimal" />
+          </div>
+          <div class="calc-field">
+            <label for="refundRate" class="block text-sm font-medium text-ink-800">
+              Refunded share of charges <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="refundRate" type="number" min="0" max="100" step="1" value="5" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="platformFee" class="block text-sm font-medium text-ink-800">
+              Flat monthly platform fee
+            </label>
+            <input id="platformFee" type="number" min="0" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="calc-field">
+            <label for="feeReturn" class="block text-sm font-medium text-ink-800">
+              Share of the percentage fee returned on a refund{' '}
+              <span class="text-ink-400">(%)</span>
+            </label>
+            <input id="feeReturn" type="number" min="0" max="100" step="1" value="0" inputmode="numeric" />
+          </div>
+          <div class="calc-field sm:self-end">
+            <p class="text-xs text-ink-400 leading-relaxed">
+              Most processors keep the percentage fee on a refunded charge. Leave this at 0 unless
+              your contract says otherwise.
+            </p>
+          </div>
+        </form>
+
+        <noscript>
+          <p class="mt-6 rounded-lg bg-ink-100 px-4 py-3 text-sm text-ink-800">
+            This calculator does the arithmetic in your browser, so it needs JavaScript. The formula
+            is written out in the guide above if you would rather do it by hand.
+          </p>
+        </noscript>
+
+        <div class="mt-7 grid gap-4 sm:grid-cols-3" aria-live="polite">
+          <div class="result-card rounded-xl bg-ink-950 p-5 text-white">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Fees per month</p>
+            <p id="out-fees" class="mt-2 text-3xl font-semibold">$0.00</p>
+            <p id="out-gross" class="mt-1 text-xs text-ink-400">on $0.00 of charges</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Net revenue</p>
+            <p id="out-net" class="mt-2 text-3xl font-semibold text-ink-950">$0.00</p>
+            <p id="out-net-note" class="mt-1 text-xs text-ink-400">after refunds and fees</p>
+          </div>
+          <div class="result-card rounded-xl border border-ink-200 p-5">
+            <p class="text-xs uppercase tracking-wider text-ink-400">Effective rate</p>
+            <p id="out-rate" class="mt-2 text-3xl font-semibold text-ink-950">0.00%</p>
+            <p id="out-per-tx" class="mt-1 text-xs text-ink-400">$0.00 per charge</p>
+          </div>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full text-sm">
+            <caption class="sr-only">Fee breakdown by line item</caption>
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wider text-ink-400">
+                <th scope="col" class="py-2 pr-4 font-medium">Line</th>
+                <th scope="col" class="py-2 pr-4 font-medium text-right">Month</th>
+                <th scope="col" class="py-2 font-medium text-right">Share of fees</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-ink-100 text-ink-800">
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Percentage fee</th>
+                <td id="row-pct" class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                <td id="share-pct" class="py-2 text-right tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Fixed fees</th>
+                <td id="row-fixed" class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                <td id="share-fixed" class="py-2 text-right tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Platform fee</th>
+                <td id="row-platform" class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                <td id="share-platform" class="py-2 text-right tabular-nums text-ink-600">—</td>
+              </tr>
+              <tr>
+                <th scope="row" class="py-2 pr-4 text-left font-normal">Kept on refunds</th>
+                <td id="row-refund" class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                <td class="py-2 text-right text-ink-600">inside the percentage line</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-xs text-ink-400">
+          Rounded to the cent. The calculator does not store or transmit anything; reload the page
+          and it resets.
+        </p>
+      </section>
+
+<script>
+  import { computePaymentFees } from '../lib/calculations';
+
+  const form = document.getElementById('fee-form') as HTMLFormElement | null;
+
+  if (form) {
+    const ids = [
+      'txMonth',
+      'avgSale',
+      'pctFee',
+      'fixedFee',
+      'refundRate',
+      'platformFee',
+      'feeReturn',
+    ] as const;
+    type Id = (typeof ids)[number];
+
+    const el = (id: Id) => document.getElementById(id) as HTMLInputElement | null;
+    const out = (id: string) => document.getElementById(id) as HTMLElement | null;
+
+    const num = (id: Id, fallback = 0): number => {
+      const node = el(id);
+      if (!node) return fallback;
+      const value = Number.parseFloat(node.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    };
+
+    const usd = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    const set = (id: string, text: string) => {
+      const node = out(id);
+      if (node) node.textContent = text;
+    };
+
+    const compute = () => {
+      const result = computePaymentFees({
+        transactionsPerMonth: num('txMonth'),
+        averageSale: num('avgSale'),
+        percentFee: num('pctFee') / 100,
+        fixedFee: num('fixedFee'),
+        refundRate: num('refundRate') / 100,
+        platformFee: num('platformFee'),
+        refundedFeeReturnRate: num('feeReturn') / 100,
+      });
+
+      const total = result.totalFees;
+      const pct = (part: number) => (total > 0 ? `${((part / total) * 100).toFixed(1)}%` : '—');
+
+      set('out-fees', usd(total));
+      set('out-gross', `on ${usd(result.grossVolume)} of charges`);
+      set('out-net', usd(result.netRevenue));
+      set(
+        'out-net-note',
+        result.refundedVolume > 0
+          ? `after ${usd(result.refundedVolume)} refunded`
+          : 'after refunds and fees',
+      );
+      set('out-rate', `${(result.effectiveRate * 100).toFixed(2)}%`);
+      set('out-per-tx', `${usd(result.feePerTransaction)} per charge`);
+
+      set('row-pct', usd(result.percentFees));
+      set('row-fixed', usd(result.fixedFees));
+      set('row-platform', usd(result.platformFees));
+      set('row-refund', usd(result.lostFeeOnRefunds));
+      set('share-pct', pct(result.percentFees));
+      set('share-fixed', pct(result.fixedFees));
+      set('share-platform', pct(result.platformFees));
+    };
+
+    form.addEventListener('input', compute);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    compute();
+  }
+</script>

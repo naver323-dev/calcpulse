@@ -13,7 +13,10 @@
     "guard": "python3 scripts/forbidden_terms.py dist",
     "test:calc": "node scripts/test_calculations.ts",
     "test:dom": "node scripts/test_dom.mjs",
-    "test": "npm run build && npm run test:calc && npm run test:dom && npm run guard"
+    "test:pipeline": "python3 scripts/test_pipeline.py",
+    "test": "npm run build && npm run test:calc && npm run test:dom && npm run guard && npm run test:pipeline",
+    "collect": "python3 scripts/collect_topic.py",
+    "generate": "python3 scripts/generate_guide.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",

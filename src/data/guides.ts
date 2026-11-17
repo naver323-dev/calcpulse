@@ -44,6 +44,20 @@ export const guides: Guide[] = [
     keywords: ['saas roi calculator', 'break even calculator software', 'software subscription payback', 'tool roi'],
     topic: 'SaaS & tooling',
   },
+  {
+    slug: 'payment-fee-calculator',
+    title: 'Payment Fee Calculator: What Your Processor Keeps Per Month',
+    h1: 'What your payment processor keeps every month',
+    description:
+      'Turn charges, average sale, percentage and fixed fees, refunds and a monthly platform fee into the money the processor keeps and the effective rate you actually pay.',
+    summary:
+      'Combines percentage and fixed per-charge fees, refunded volume and a flat monthly fee into total fees, net revenue and the effective rate, which is the only figure comparable across processors.',
+    calculator: 'Payment fee calculator',
+    updated: '2026-11-17',
+    minutes: 6,
+    keywords: ['payment processing fees', 'stripe fee calculator', 'merchant fee calculator', 'effective rate card fees'],
+    topic: 'Small-business finance',
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
