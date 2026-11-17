@@ -187,4 +187,194 @@ check("a registry entry is TypeScript with the calculator label", lambda: (
     else (_ for _ in ()).throw(AssertionError("calculator label missing"))
 ))
 
+print("fallback chain")
+
+import os  # noqa: E402
+from unittest import mock  # noqa: E402
+
+import llm_fallback  # noqa: E402
+
+ALL_KEYS = {"GEMINI_API_KEY": "gemini-key", "GROQ_API_KEY": "groq-key", "OPENROUTER_API_KEY": "or-key"}
+
+
+def gemini_body(text: str) -> str:
+    return json.dumps({"candidates": [{"content": {"parts": [{"text": text}]}, "finishReason": "STOP"}]})
+
+
+def openai_body(text: str) -> str:
+    return json.dumps(
+        {"choices": [{"message": {"role": "assistant", "content": text}, "finish_reason": "stop"}]}
+    )
+
+
+def recorder(routes: dict):
+    """A transport that answers by URL fragment and remembers what was asked, newest last."""
+    calls: list[str] = []
+
+    def send(url: str, headers: dict, payload: dict, timeout: int):
+        calls.append(url)
+        for fragment, answer in routes.items():
+            if fragment in url:
+                return answer
+        raise AssertionError(f"unexpected request to {url}")
+
+    return send, calls
+
+
+def chain(env: dict, transport, **kwargs):
+    with mock.patch.dict(os.environ, env, clear=False):
+        return llm_fallback.chat_json("system", "user", transport=transport, sleep=lambda _s: None, **kwargs)
+
+
+def gemini_quota_goes_to_groq() -> None:
+    transport, calls = recorder({
+        "generativelanguage": (429, '{"error": {"status": "RESOURCE_EXHAUSTED"}}'),
+        "api.groq.com": (200, openai_body('{"slug": "from-groq"}')),
+        "openrouter.ai/api": (200, openai_body('{"slug": "from-openrouter"}')),
+    })
+    draft, label = chain(ALL_KEYS, transport)
+    assert draft == {"slug": "from-groq"}, draft
+    assert label == "groq:openai/gpt-oss-120b", label
+    assert not any("openrouter.ai/api" in url for url in calls), "the third tier must not be touched"
+
+
+check("a Gemini 429 hands the draft to Groq", gemini_quota_goes_to_groq)
+
+
+def two_tiers_out_reaches_openrouter() -> None:
+    transport, calls = recorder({
+        "generativelanguage": (429, "quota exceeded"),
+        "api.groq.com": (429, "rate limit exceeded"),
+        "openrouter.ai/api": (200, openai_body('{"slug": "from-openrouter"}')),
+    })
+    draft, label = chain(ALL_KEYS, transport)
+    assert draft == {"slug": "from-openrouter"}, draft
+    assert label.startswith("openrouter:") and label.endswith(":free"), label
+    assert calls[-1].startswith("https://openrouter.ai/api/v1/chat/completions"), calls[-1]
+
+
+check(
+    "Gemini and Groq both out of quota still publishes through an OpenRouter free model",
+    two_tiers_out_reaches_openrouter,
+)
+
+
+def spare_openai_compatible_slot() -> None:
+    transport, _calls = recorder({
+        "models.example.test": (200, openai_body('{"slug": "from-spare"}')),
+    })
+    env = {
+        "GROQ_API_KEY": "groq-key",
+        "OPENROUTER_API_KEY": "or-key",
+        "GITHUB_MODELS_TOKEN": "spare-token",
+        "GITHUB_MODELS_ENDPOINT": "https://models.example.test/inference",
+    }
+    draft, label = chain(env, transport, providers=["github-models"])
+    assert draft == {"slug": "from-spare"} and label == "github:openai/gpt-4o-mini", (draft, label)
+
+
+check("an OpenAI-compatible spare endpoint can take the third slot", spare_openai_compatible_slot)
+
+
+def unusable_json_moves_on() -> None:
+    transport, _ = recorder({
+        "generativelanguage": (200, gemini_body("I cannot answer in JSON today.")),
+        "api.groq.com": (200, openai_body('{"slug": "second-try"}')),
+    })
+    draft, label = chain(ALL_KEYS, transport)
+    assert draft == {"slug": "second-try"} and label.startswith("groq:"), (draft, label)
+
+
+check("an answer that is not JSON moves to the next tier", unusable_json_moves_on)
+
+
+def missing_key_is_skipped() -> None:
+    transport, calls = recorder({
+        "api.groq.com": (200, openai_body('{"slug": "groq-only"}')),
+    })
+    draft, label = chain({"GROQ_API_KEY": "groq-key"}, transport)
+    assert draft == {"slug": "groq-only"}, draft
+    assert label.startswith("groq:"), label
+    assert not any("generativelanguage" in url for url in calls), "no Gemini call without a key"
+
+
+check("a tier without a credential is skipped, not an error", missing_key_is_skipped)
+
+
+def every_tier_out_quotes() -> None:
+    transport, _ = recorder({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (429, "rate limit"),
+        "openrouter.ai/api": (429, "rate limit"),
+    })
+    try:
+        chain(ALL_KEYS, transport)
+    except llm_fallback.QuotaExhausted:
+        return
+    raise AssertionError("QuotaExhausted was not raised")
+
+
+check("every tier out of quota raises QuotaExhausted (a skip, not a red run)", every_tier_out_quotes)
+
+
+def broken_key_is_loud() -> None:
+    transport, _ = recorder({
+        "generativelanguage": (400, '{"error": {"message": "API key not valid"}}'),
+        "api.groq.com": (401, '{"error": "invalid_api_key"}'),
+        "openrouter.ai/api": (404, '{"error": "gone"}'),
+    })
+    try:
+        chain(ALL_KEYS, transport)
+    except llm_fallback.ChainFailed as exc:
+        assert "invalid_api_key" in str(exc) or "401" in str(exc), str(exc)
+        return
+    except llm_fallback.QuotaExhausted:
+        raise AssertionError("a broken key must not look like a quiet quota skip")
+    raise AssertionError("ChainFailed was not raised")
+
+
+check("a broken key fails loudly instead of looking like a quota skip", broken_key_is_loud)
+
+
+def draft_from_groq_passes_the_gate() -> None:
+    fixture = FIXTURE.read_text(encoding="utf-8")
+    transport, _ = recorder({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (200, openai_body(fixture)),
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        generated, label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
+    assert generate_guide.validate_draft(generated, EXISTING) == [], "the Groq draft failed the validator"
+    assert label.startswith("groq:"), label
+    assert generated["sections"], "the draft lost its sections"
+
+
+check("a draft generated on the Groq tier passes the same validator", draft_from_groq_passes_the_gate)
+
+
+def quota_maps_to_the_skip_path() -> None:
+    transport, _ = recorder({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (429, "quota"),
+        "openrouter.ai/api": (429, "quota"),
+    })
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        try:
+            generate_guide.call_with_fallback("s", "u", ["gemini-3.8-flash"], lambda *_: None, transport=transport)
+        except generate_guide.QuotaError:
+            return
+        except Exception as exc:  # noqa: BLE001
+            raise AssertionError(f"expected QuotaError, got {type(exc).__name__}: {exc}")
+    raise AssertionError("QuotaError was not raised")
+
+
+check("the generator turns an all-quota chain into today's skip", quota_maps_to_the_skip_path)
+
 print(f"\n{passed} pipeline checks passed")

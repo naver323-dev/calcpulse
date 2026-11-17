@@ -5,7 +5,8 @@ One run publishes at most one guide. The order is deliberate:
 
   1. scripts/collect_topic.py picks a topic from free public sources (Hacker News,
      GitHub, Google Trends) and drops anything CalcPulse has already published.
-  2. The Gemini API (free tier, no Search grounding) writes the guide as JSON.
+  2. A free LLM writes the guide as JSON: Gemini first, then Groq, then OpenRouter
+     (scripts/llm_fallback.py). One tier running out of quota is no longer a lost day.
   3. The draft is validated against the editorial rules *and* the same forbidden-topic
      list the deployment guard uses (scripts/forbidden_terms.py), so a bad topic is
      refused before a file exists — and again by `npm test` before anything is pushed.
@@ -28,8 +29,14 @@ Usage
     python3 scripts/generate_guide.py --collect-only  # just print today's topic
 
 Environment
-    GEMINI_API_KEY    required unless --dry-run / --self-test / --collect-only
-    GEMINI_MODEL      optional, comma separated fallback list
+    GEMINI_API_KEY      free tier, first choice (unless --dry-run / --self-test / --collect-only)
+    GEMINI_MODEL        optional, comma separated model list for that tier
+    GROQ_API_KEY        free tier, second choice; skipped when unset
+    GROQ_MODEL          optional, comma separated model list
+    OPENROUTER_API_KEY  third choice, ":free" models (no card); skipped when unset
+    OPENROUTER_MODEL    optional, comma separated model list
+
+Any one of the three keys is enough to generate; the chain uses whatever is present.
 
 Exit codes: 0 published / skipped today / nothing to do, 2 nothing to collect,
 3 API or key problem, 4 validation or build gate failed, 5 git problem.
@@ -45,11 +52,8 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib import error as urlerror
-from urllib import request as urlrequest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -61,15 +65,17 @@ STATE_PATH = SCRIPTS / "pipeline_state.json"
 sys.path.insert(0, str(SCRIPTS))
 from forbidden_terms import FORBIDDEN_TERMS  # noqa: E402  (same list the build guard uses)
 import collect_topic  # noqa: E402
+import llm_fallback  # noqa: E402  (Gemini -> Groq -> GitHub Models, all free tiers)
 
 SITE_ORIGIN = "https://calcpulse.pages.dev"
 STACKVERDICT_URL = "https://stackverdict-8jj.pages.dev"
 KST = timezone(timedelta(hours=9))
 
-API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
+API_BASE = llm_fallback.GEMINI_BASE
 # Same free-tier pattern as the sister site: Flash drafts, Flash-Lite is the fallback with
 # far more free headroom. No Search grounding — it has no free quota and burns retries.
 DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
+PROVIDER_ORDER = llm_fallback.DEFAULT_PROVIDERS
 GENERATION_ATTEMPTS = 2
 MAX_PER_RUN = 1
 
@@ -222,80 +228,32 @@ def build_user_prompt(topic: dict, existing: list[dict], date: str) -> str:
     )
 
 
-def _extract_text(data: dict) -> str:
-    candidates = data.get("candidates") or []
-    if not candidates:
-        feedback = data.get("promptFeedback") or {}
-        raise ApiError(f"no candidates (promptFeedback={json.dumps(feedback)[:300]})")
-    candidate = candidates[0]
-    parts = (candidate.get("content") or {}).get("parts") or []
-    text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
-    if not text.strip():
-        raise ApiError(f"empty candidate (finishReason={candidate.get('finishReason')})")
-    return text
+def call_with_fallback(
+    system: str,
+    user: str,
+    models: list[str],
+    log=print,
+    transport=None,
+) -> tuple[dict, str]:
+    """Gemini -> Groq -> GitHub Models, every tier free.
 
-
-def _parse_json_object(text: str) -> dict:
-    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip())
-    cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+    A quota answer on one tier moves to the next instead of ending the day. Only when
+    every reachable tier is out does this surface QuotaError (skip today, exit 0); a
+    broken key or an unreachable service surfaces ApiError (exit 3) so it gets noticed.
+    """
+    env = dict(os.environ)
+    if models:
+        env["GEMINI_MODEL"] = ",".join(models)
+    kwargs = {"log": log, "temperature": 0.7, "max_tokens": 8192, "providers": PROVIDER_ORDER, "env": env}
+    if transport is not None:
+        kwargs["transport"] = transport
+        kwargs["sleep"] = lambda _seconds: None
     try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        start, end = cleaned.find("{"), cleaned.rfind("}")
-        if start >= 0 and end > start:
-            return json.loads(cleaned[start : end + 1])
-        raise
-
-
-def call_gemini(system: str, user: str, api_key: str, models: list[str], log=print) -> tuple[dict, str]:
-    last_error = "no attempt made"
-    for model in models:
-        url = f"{API_BASE}/{model}:generateContent?key={api_key}"
-        payload = {
-            "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
-            "generationConfig": {
-                "temperature": 0.7,
-                "topP": 0.95,
-                "maxOutputTokens": 8192,
-                "responseMimeType": "application/json",
-            },
-        }
-        for attempt in range(2):
-            request = urlrequest.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
-                method="POST",
-            )
-            try:
-                with urlrequest.urlopen(request, timeout=180) as response:
-                    data = json.loads(response.read().decode("utf-8"))
-                return _parse_json_object(_extract_text(data)), model
-            except urlerror.HTTPError as exc:
-                detail = exc.read().decode("utf-8", "replace")[:400]
-                last_error = f"{model} HTTP {exc.code}: {detail}"
-                log(f"  ! {last_error}")
-                if exc.code in (400,) and "API key" in detail:
-                    raise ApiError(f"Gemini rejected the API key: {detail}") from exc
-                exhausted = "quota" in detail.lower() or "resource_exhausted" in detail.lower()
-                if exc.code == 429 or (exc.code == 403 and exhausted):
-                    # Free-tier ceiling: stop here, do not walk the fallback models into the
-                    # same wall, and do not turn the cron into a red run.
-                    raise QuotaError(last_error) from exc
-                if exc.code in (500, 502, 503, 504) and attempt == 0:
-                    time.sleep(5)
-                    continue
-                break
-            except (urlerror.URLError, TimeoutError, json.JSONDecodeError, ApiError) as exc:
-                last_error = f"{model}: {exc}"
-                log(f"  ! {last_error}")
-                if attempt == 0:
-                    time.sleep(5)
-                    continue
-                break
-        log(f"  ! model {model} exhausted")
-    raise ApiError(f"Gemini generation failed. Last error: {last_error}")
+        return llm_fallback.chat_json(system, user, **kwargs)
+    except llm_fallback.QuotaExhausted as exc:
+        raise QuotaError(str(exc)) from exc
+    except llm_fallback.ChainFailed as exc:
+        raise ApiError(str(exc)) from exc
 
 
 # --------------------------------------------------------------------------------------
@@ -771,10 +729,15 @@ def log(message: str) -> None:
     print(message, file=sys.stderr)
 
 
-def generate_draft(topic: dict, existing: list[dict], api_key: str, models: list[str]) -> tuple[dict, str]:
+def generate_draft(
+    topic: dict,
+    existing: list[dict],
+    models: list[str],
+    transport=None,
+) -> tuple[dict, str]:
     slugs = {guide["slug"] for guide in existing if guide.get("slug")}
     user = build_user_prompt(topic, existing, today_kst())
-    draft, model = call_gemini(SYSTEM_PROMPT, user, api_key, models, log)
+    draft, model = call_with_fallback(SYSTEM_PROMPT, user, models, log, transport=transport)
     draft = normalize_draft(draft, topic["family"])
     problems = validate_draft(draft, slugs)
 
@@ -789,7 +752,7 @@ def generate_draft(topic: dict, existing: list[dict], api_key: str, models: list
             + "\n".join(f"- {problem}" for problem in problems)
             + "\n\nReturn the complete corrected JSON object only, with the same shape."
         )
-        draft, model = call_gemini(SYSTEM_PROMPT, repair, api_key, models, log)
+        draft, model = call_with_fallback(SYSTEM_PROMPT, repair, models, log, transport=transport)
         draft = normalize_draft(draft, topic["family"])
         problems = validate_draft(draft, slugs)
 
@@ -908,9 +871,12 @@ def main() -> int:
             write_state(state)
             return 0
 
-        api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-        if not api_key:
-            print("GEMINI_API_KEY is not set; refusing to generate.", file=sys.stderr)
+        if not any(llm_fallback.provider_config(name) for name in PROVIDER_ORDER):
+            print(
+                "no LLM credential is set (GEMINI_API_KEY, GROQ_API_KEY or OPENROUTER_API_KEY); "
+                "refusing to generate.",
+                file=sys.stderr,
+            )
             return 3
         models = [
             item.strip()
@@ -919,7 +885,7 @@ def main() -> int:
         ] or DEFAULT_MODELS
 
         try:
-            draft, model = generate_draft(topic, existing, api_key, models)
+            draft, model = generate_draft(topic, existing, models)
         except QuotaError as exc:
             log(f"skip today: free-tier quota ({exc})")
             state["skips"].append({"date": date, "reason": "quota", "detail": str(exc)[:200]})
