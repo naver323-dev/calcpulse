@@ -1,0 +1,29 @@
+name: ai-fallback-check
+
+# Manual only: asks each free LLM tier for one short answer and prints which ones
+# replied. It publishes nothing and writes nothing — the daily-guide job is the only
+# place a guide is made. Run it after rotating a key, or when a daily run reported a
+# provider error, to see which tier is out without waiting for 10:15.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  models: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Which tier answers right now
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GITHUB_MODELS_TOKEN: ${{ github.token }}
+        run: python3 scripts/llm_fallback.py --check
