@@ -221,8 +221,21 @@ def recorder(routes: dict):
     return send, calls
 
 
+# A CI run has the real keys in the environment; a test that says "only this key is set"
+# has to take the others away first, or it calls a live provider from the gate.
+LLM_KEYS = (
+    "GEMINI_API_KEY",
+    "GROQ_API_KEY",
+    "OPENROUTER_API_KEY",
+    "CEREBRAS_API_KEY",
+    "GITHUB_MODELS_TOKEN",
+    "GITHUB_TOKEN",
+)
+
+
 def chain(env: dict, transport, **kwargs):
-    with mock.patch.dict(os.environ, env, clear=False):
+    blank = {key: "" for key in LLM_KEYS}
+    with mock.patch.dict(os.environ, {**blank, **env}, clear=False):
         return llm_fallback.chat_json("system", "user", transport=transport, sleep=lambda _s: None, **kwargs)
 
 
