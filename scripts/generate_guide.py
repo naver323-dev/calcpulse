@@ -272,6 +272,7 @@ def call_with_fallback(
         "log": log,
         "temperature": 0.7,
         "max_tokens": 8192,
+        "timeout": 120,  # a hung tier hands over instead of holding the run for minutes
         "providers": providers,
         "env": env,
     }
@@ -819,6 +820,47 @@ def faq_only_prompt(user: str, draft: dict, targets: list[int]) -> str:
     )
 
 
+# Which part of the draft a validator message is about. A repair that rewrites the whole
+# article loses what the previous pass had already right; when every failure sits in one
+# field, ask for that field alone and merge it back.
+SINGLE_FIELD_RULES = (
+    ("slug", "slug"),
+    ("topic ", "topic"),
+    ("title must be", "title"),
+    ("h1 must be", "h1"),
+    ("description ", "description"),
+    ("summary ", "summary"),
+    ("keyword", "keywords"),
+    ("faq[", "faq"),
+    ("faq must be", "faq"),
+    ("checklist", "checklist"),
+)
+
+
+def single_field_repair(problems: list[str]) -> str:
+    """The one field every failure is about, or "" when a repair has to touch the draft."""
+    fields = set()
+    for problem in problems:
+        for prefix, field in SINGLE_FIELD_RULES:
+            if problem.startswith(prefix):
+                fields.add(field)
+                break
+        else:
+            return ""
+    return fields.pop() if len(fields) == 1 else ""
+
+
+def field_only_prompt(user: str, draft: dict, field: str, problems: list[str]) -> str:
+    current = json.dumps(draft.get(field), ensure_ascii=False, indent=2)
+    listed = "\n".join(f"- {problem}" for problem in problems)
+    return (
+        f"{user}\n\nThe rest of the draft passed every check. Only `{field}` failed:\n{listed}\n\n"
+        f"Current value:\n{current[:2500]}\n\n"
+        f"Return only this JSON object and nothing else, with `{field}` corrected and the meaning "
+        f"kept: {{\"{field}\": <the corrected value>}}."
+    )
+
+
 def generate_draft(
     topic: dict,
     existing: list[dict],
@@ -839,9 +881,15 @@ def generate_draft(
         if not problems:
             break
         targets = faq_repair_targets(problems)
+        field = single_field_repair(problems) if not targets else "faq"
         if targets:
             log(f"  ! {len(problems)} FAQ answer(s) outside 40-130 words; asking for the FAQ only")
             repair = faq_only_prompt(user, best[0], targets)
+        elif field:
+            log(f"  ! the draft failed {len(problems)} check(s) in `{field}` only; asking for that field")
+            for problem in problems[:6]:
+                log(f"    - {problem}")
+            repair = field_only_prompt(user, best[0], field, problems)
         else:
             log(f"  ! draft failed {len(problems)} check(s); asking for one repair")
             for problem in problems[:12]:
@@ -865,12 +913,12 @@ def generate_draft(
             # enough below; a dead repair must not turn into a red run.
             log(f"  ! the repair pass found no free tier ({exc})")
             break
-        if targets:
-            # The answer was asked to carry the FAQ alone; keep the rest of the draft.
-            if not isinstance(answer.get("faq"), list):
-                log("  · the FAQ-only repair came back without a faq list; keeping the earlier draft")
+        if field:
+            # The answer was asked to carry one field; keep the rest of the draft.
+            if field not in answer:
+                log(f"  · the repair came back without `{field}`; keeping the earlier draft")
                 break
-            draft = normalize_draft({**best[0], "faq": answer["faq"]}, topic["family"])
+            draft = normalize_draft({**best[0], field: answer[field]}, topic["family"])
         else:
             draft = normalize_draft(answer, topic["family"])
         problems = validate_draft(draft, slugs)

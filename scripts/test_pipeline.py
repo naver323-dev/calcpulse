@@ -532,6 +532,33 @@ def minutes_follow_the_words() -> None:
 check("the reading time is derived from the body, not taken from the model", minutes_follow_the_words)
 
 
+def title_only_repair_keeps_the_article() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixture["title"] = "Too short"
+    good_title = json.loads(FIXTURE.read_text(encoding="utf-8"))["title"]
+    transport, calls = sequencer({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (200, openai_body(json.dumps(fixture))),
+        "openrouter.ai/api": (200, openai_body(json.dumps({"title": good_title}))),
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        draft, _label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
+    assert generate_guide.validate_draft(draft, EXISTING) == [], "the field repair did not fix the title"
+    assert draft["slug"] == fixture["slug"], "only the title should have changed"
+    assert draft["title"] == good_title
+    assert "Only `title` failed" in calls[-1][1]["messages"][-1]["content"]
+
+
+check("a title that is the only failed check is repaired without rewriting the guide", title_only_repair_keeps_the_article)
+
+
 def repair_does_not_return_to_a_dead_tier() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     fixture["faq"][2]["a"] = "Too short."
