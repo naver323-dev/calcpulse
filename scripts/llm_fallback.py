@@ -15,7 +15,13 @@ What counts as a failure, and what happens next:
     bad key (401/403 without quota)        -> next provider, reported if nothing works
     retired model / endpoint (404/410)     -> next model, then next provider
     5xx / timeout / network                -> one retry, then next provider
+    400 with the JSON flag refused         -> one retry without response_format
+    200 with no text and finish=length     -> one lean retry (less reasoning, more room)
     200 with unusable JSON                 -> next model, then next provider
+
+A model that answers with a fenced block, a line of talk before the object, a trailing
+comma or a raw control character is still an answered draft; parse_json_object repairs
+those instead of throwing the tier away.
 
 Nothing here spends money: every tier is a provider free tier, and Groq and the
 OpenRouter :free models need no card.
@@ -84,6 +90,7 @@ LABEL_PREFIX = {
     "cerebras": "cerebras:",
     "github-models": "github:",
 }
+_TIER_OF_PREFIX = {prefix.rstrip(":"): name for name, prefix in LABEL_PREFIX.items() if prefix}
 
 # 0 is a timeout or dropped connection, which deserves the same single retry as a 5xx.
 RETRY_STATUS = (0, 500, 502, 503, 504)
@@ -120,6 +127,19 @@ class ProviderError(RuntimeError):
         return self.status in (404, 410)
 
 
+class EmptyAnswer(Exception):
+    """The provider answered 200 with no text; finish_reason says why."""
+
+    def __init__(self, reason: str | None):
+        super().__init__(f"empty answer (finish_reason={reason or 'unknown'})")
+        self.reason = reason or ""
+
+    @property
+    def truncated(self) -> bool:
+        """The budget ran out before the answer started: worth one leaner retry."""
+        return self.reason.upper() in ("LENGTH", "MAX_TOKENS")
+
+
 class QuotaExhausted(RuntimeError):
     """Every reachable tier said no for quota. Not a failure: nobody publishes today."""
 
@@ -153,23 +173,108 @@ Transport = Callable[[str, dict, dict, int], "tuple[int, str]"]
 # --------------------------------------------------------------------------------------
 # response parsing
 # --------------------------------------------------------------------------------------
+_FENCE = re.compile(r"```[A-Za-z0-9_.+-]*")
+_CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+_TRAILING_COMMA = re.compile(r",(\s*[}\]])")
+_SMART_QUOTES = str.maketrans({"“": '"', "”": '"', "‘": "'", "’": "'"})
+
+
+def _json_objects(text: str) -> list[str]:
+    """Every balanced {...} block in the answer, in order, ignoring braces inside strings.
+
+    Model answers often carry a sentence before the object, or an empty ``{}`` in the
+    prose; taking first-to-last brace would swallow the sentence instead.
+    """
+    found: list[str] = []
+    start = text.find("{")
+    while start >= 0:
+        depth = 0
+        in_string = False
+        escaped = False
+        end = -1
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    end = index
+                    break
+        if end < 0:
+            break
+        found.append(text[start : end + 1])
+        start = text.find("{", end + 1)
+    return found
+
+
+def _repair_json(text: str) -> str:
+    """The usual model damage: a byte-order mark, curly quotes, a control character,
+    a trailing comma before a closing brace or bracket."""
+    fixed = text.replace("\ufeff", "").translate(_SMART_QUOTES)
+    fixed = _CONTROL.sub("", fixed)
+    return _TRAILING_COMMA.sub(r"\1", fixed)
+
+
+def _parse_candidates(text: str) -> list[str]:
+    """Every reading of the answer worth trying, cheapest first."""
+    seen: set[str] = set()
+    ordered: list[str] = []
+
+    def add(value: str | None) -> None:
+        value = (value or "").strip()
+        if value and value not in seen:
+            seen.add(value)
+            ordered.append(value)
+
+    raw = (text or "").strip()
+    add(raw)
+    add(_FENCE.sub("", raw))  # ```json fences, wherever they sit
+    for candidate in list(ordered):
+        for block in _json_objects(candidate)[:4]:
+            add(block)
+    for candidate in list(ordered):
+        add(_repair_json(candidate))
+    return ordered
+
+
 def parse_json_object(text: str) -> dict:
-    """Tolerate a fenced or chatty answer; refuse anything that is not a JSON object."""
-    cleaned = re.sub(r"^```(?:json)?\s*", "", (text or "").strip())
-    cleaned = re.sub(r"\s*```$", "", cleaned).strip()
-    try:
-        value = json.loads(cleaned)
-    except json.JSONDecodeError:
-        start, end = cleaned.find("{"), cleaned.rfind("}")
-        if start < 0 or end <= start:
-            raise
-        value = json.loads(cleaned[start : end + 1])
-    if not isinstance(value, dict):
-        # A model that wraps the object in a one-element list still answered; unwrap it.
+    """Tolerate a fenced, chatty, trailing-comma or control-character answer.
+
+    Raises ValueError when no reading of the answer is a JSON object. A one-element list
+    wrapping the object is unwrapped; anything else is refused, because the caller's
+    validator expects the shape it asked for.
+    """
+    last_error: Exception | None = None
+    best: dict | None = None
+    for candidate in _parse_candidates(text):
+        try:
+            # strict=False lets a raw newline or tab sit inside a string value.
+            value = json.loads(candidate, strict=False)
+        except (json.JSONDecodeError, ValueError) as exc:
+            last_error = exc
+            continue
         if isinstance(value, list) and len(value) == 1 and isinstance(value[0], dict):
-            return value[0]
-        raise ValueError("answer is not a JSON object")
-    return value
+            value = value[0]
+        if not isinstance(value, dict):
+            last_error = ValueError("answer is not a JSON object")
+            continue
+        # An empty ``{}`` in the model's prose parses too; the draft is the fuller object.
+        if best is None or len(value) > len(best):
+            best = value
+    if best is not None:
+        return best
+    raise ValueError(f"answer is not a JSON object ({last_error})") from last_error
 
 
 def _gemini_text(body: str) -> str:
@@ -182,7 +287,7 @@ def _gemini_text(body: str) -> str:
     parts = (candidate.get("content") or {}).get("parts") or []
     text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
     if not text.strip():
-        raise ValueError(f"empty candidate (finishReason={candidate.get('finishReason')})")
+        raise EmptyAnswer(candidate.get("finishReason"))
     return text
 
 
@@ -196,8 +301,63 @@ def _openai_text(body: str) -> str:
     if isinstance(text, list):  # some gateways return content parts
         text = "".join(part.get("text", "") for part in text if isinstance(part, dict))
     if not (text or "").strip():
-        raise ValueError(f"empty message (finish_reason={choices[0].get('finish_reason')})")
+        raise EmptyAnswer(choices[0].get("finish_reason"))
     return text
+
+
+def _answer_text(provider: str, body: str) -> str:
+    return _gemini_text(body) if provider == "gemini" else _openai_text(body)
+
+
+def _json_flag_refused(body: str) -> bool:
+    """The gateway turned down response_format, not the request itself.
+
+    Groq runs its own schema check on a json_object answer and reports a generation that
+    ran out of budget before closing the object as HTTP 400 json_validate_failed, often
+    with an empty failed_generation. The model still answers; only the flag has to go.
+    """
+    lowered = (body or "").lower()
+    return (
+        "response_format" in lowered
+        or "json_validate_failed" in lowered
+        or "failed to validate json" in lowered
+    )
+
+
+# A lean retry must stay inside the free tier's per-minute token budget: 8k/minute for
+# Groq's gpt-oss, so prompt + answer has to fit under it.
+LEAN_TOKEN_CAP = {"groq": 6144, "cerebras": 6144}
+
+
+def _lean_retry(payload: dict, provider: str) -> dict | None:
+    """The same request with the answer budget freed: less reasoning, more output room.
+
+    Groq's gpt-oss and the OpenRouter :free reasoning models answer 200 with an empty
+    message and finish_reason=length when thinking consumed the whole completion budget.
+    Returns None when there is nothing left to change.
+    """
+    lean = json.loads(json.dumps(payload))
+    cap = LEAN_TOKEN_CAP.get(provider, 16384)
+    changed = False
+    if provider == "gemini":
+        config = lean.setdefault("generationConfig", {})
+        current = int(config.get("maxOutputTokens") or 4096)
+        if current < cap:
+            config["maxOutputTokens"] = min(current * 2, cap)
+            changed = True
+        return lean if changed else None
+    key = "max_completion_tokens" if "max_completion_tokens" in lean else "max_tokens"
+    current = int(lean.get(key) or 0)
+    if current < cap:
+        lean[key] = min(current * 2 or cap, cap)
+        changed = True
+    if provider in ("groq", "cerebras") and lean.get("reasoning_effort") != "low":
+        lean["reasoning_effort"] = "low"
+        changed = True
+    if provider == "openrouter" and (lean.get("reasoning") or {}).get("effort") != "low":
+        lean["reasoning"] = {"effort": "low"}
+        changed = True
+    return lean if changed else None
 
 
 # --------------------------------------------------------------------------------------
@@ -288,6 +448,17 @@ def provider_order(env: dict | None = None) -> list[str]:
     return order or list(DEFAULT_PROVIDERS)
 
 
+def provider_of_label(label: str) -> str:
+    """The tier that answered, read back from the label chat() returned.
+
+    "groq:openai/gpt-oss-120b" -> "groq"; Gemini's labels are bare model names, so
+    "gemini-3.8-flash" -> "gemini". A caller uses this to ask the tier that answered to
+    repair its own draft before the next tier is spent.
+    """
+    head = str(label or "").partition(":")[0]
+    return _TIER_OF_PREFIX.get(head, "gemini")
+
+
 def is_configured(env: dict | None = None) -> bool:
     """True when at least one tier of the order has a credential here."""
     return any(provider_config(name, env) for name in provider_order(env))
@@ -354,16 +525,31 @@ def _request(
     if status == 0:
         raise ProviderError(provider, model, body[:300] or "no response", 0)
 
-    if status == 400 and json_mode and provider != "gemini" and "response_format" in body.lower():
+    if status == 400 and json_mode and provider != "gemini" and _json_flag_refused(body):
         # A model that cannot promise JSON still answers; drop the flag and let the
         # parser decide. The caller's validator is the real gate either way.
-        log(f"  ~ {provider}/{model}: no json mode, retrying without response_format")
-        payload.pop("response_format", None)
+        log(f"  ~ {provider}/{model}: server refused the JSON mode, retrying without it")
+        payload = {key: value for key, value in payload.items() if key != "response_format"}
         status, body = transport(url, headers, payload, timeout)
 
     if status == 200:
         try:
-            return _gemini_text(body) if provider == "gemini" else _openai_text(body)
+            return _answer_text(provider, body)
+        except EmptyAnswer as exc:
+            lean = _lean_retry(payload, provider) if exc.truncated else None
+            if lean is None:
+                raise ProviderError(provider, model, f"unusable response: {exc}", status) from exc
+            log(f"  ~ {provider}/{model}: {exc}; retrying once with a leaner budget")
+            status, body = transport(url, headers, lean, timeout)
+            if status == 0:
+                raise ProviderError(provider, model, body[:300] or "no response", 0)
+            if status != 200:
+                detail = re.sub(r"\s+", " ", body or "")[:300]
+                raise ProviderError(provider, model, f"HTTP {status}: {detail}", status)
+            try:
+                return _answer_text(provider, body)
+            except (EmptyAnswer, json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
+                raise ProviderError(provider, model, f"unusable response: {exc}", status) from exc
         except (json.JSONDecodeError, ValueError, KeyError, TypeError) as exc:
             raise ProviderError(provider, model, f"unusable response: {exc}", status) from exc
 

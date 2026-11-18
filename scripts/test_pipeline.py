@@ -377,4 +377,133 @@ def quota_maps_to_the_skip_path() -> None:
 
 check("the generator turns an all-quota chain into today's skip", quota_maps_to_the_skip_path)
 
+
+def sequencer(routes: dict):
+    """A transport whose answer per URL fragment is a queue; the last answer repeats.
+
+    A fragment maps either to one (status, body) pair or to a list of them.
+    """
+    calls: list[tuple[str, dict]] = []
+    queues = {
+        fragment: [answers] if isinstance(answers, tuple) else list(answers)
+        for fragment, answers in routes.items()
+    }
+
+    def send(url: str, headers: dict, payload: dict, timeout: int):
+        calls.append((url, payload))
+        for fragment, answers in queues.items():
+            if fragment in url and answers:
+                return answers.pop(0) if len(answers) > 1 else answers[0]
+        raise AssertionError(f"unexpected request to {url}")
+
+    return send, calls
+
+
+def tolerant_json_keeps_the_tier() -> None:
+    chatty = 'Sure — here is the draft.\n```json\n{"slug": "tolerant-draft", "faq": [{"q": "a", "a": "b"},],}\n```\nLet me know if you want changes.'
+    transport, _calls = sequencer({
+        "generativelanguage": (200, gemini_body(chatty)),
+        "api.groq.com": (200, openai_body('{"slug": "wrong-tier"}')),
+    })
+    draft, label = chain(ALL_KEYS, transport)
+    assert draft.get("slug") == "tolerant-draft", draft
+    assert label.startswith("gemini"), label
+
+
+check("a fenced, chatty answer with a trailing comma is still that tier's answer", tolerant_json_keeps_the_tier)
+
+
+def groq_json_validator_retry() -> None:
+    transport, calls = sequencer({
+        "api.groq.com": [
+            (400, '{"error":{"message":"Failed to validate JSON. Please adjust your prompt.","code":"json_validate_failed","failed_generation":""}}'),
+            (200, openai_body('{"slug": "after-flag-drop"}')),
+        ],
+    })
+    draft, label = chain({"GROQ_API_KEY": "groq-key"}, transport, providers=["groq"])
+    assert draft == {"slug": "after-flag-drop"}, draft
+    assert label.startswith("groq:"), label
+    assert "response_format" in calls[0][1], "the first request should ask for JSON mode"
+    assert "response_format" not in calls[1][1], "the retry must drop the flag Groq refused"
+
+
+check("Groq's own JSON validator refusing a generation retries without the flag", groq_json_validator_retry)
+
+
+def truncated_empty_is_retried_lean() -> None:
+    empty_length = json.dumps(
+        {"choices": [{"message": {"role": "assistant", "content": ""}, "finish_reason": "length"}]}
+    )
+    transport, calls = sequencer({
+        "api.groq.com": [(200, empty_length), (200, openai_body('{"slug": "lean-answer"}'))],
+    })
+    draft, _label = chain({"GROQ_API_KEY": "groq-key"}, transport, providers=["groq"])
+    assert draft == {"slug": "lean-answer"}, draft
+    assert calls[1][1].get("reasoning_effort") == "low", calls[1][1]
+    assert calls[1][1]["max_completion_tokens"] > calls[0][1]["max_completion_tokens"], calls[1][1]
+    assert calls[1][1]["max_completion_tokens"] <= llm_fallback.LEAN_TOKEN_CAP["groq"], calls[1][1]
+
+
+check(
+    "an empty answer that ran out of budget gets one lean retry before the next tier",
+    truncated_empty_is_retried_lean,
+)
+
+
+def worse_repair_keeps_the_first_draft() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    for entry in fixture["faq"][2:4]:
+        entry["a"] = "Too short."
+    stub = json.dumps({"slug": "stub", "sections": []})
+    transport, _calls = sequencer({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": [(200, openai_body(json.dumps(fixture))), (200, openai_body(stub))],
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        try:
+            generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
+        except generate_guide.ValidationError as exc:
+            assert len(exc.problems) == 2, exc.problems
+            assert all("faq[" in problem for problem in exc.problems), exc.problems
+            return
+    raise AssertionError("the stub repair must not replace the near-complete draft")
+
+
+check("a repair that comes back worse does not replace the draft it was fixing", worse_repair_keeps_the_first_draft)
+
+
+def repair_starts_at_the_answering_tier() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixture["faq"][3]["a"] = "Too short."
+    repaired = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    transport, calls = sequencer({
+        "generativelanguage": (503, '{"error":{"status":"UNAVAILABLE"}}'),
+        "api.groq.com": [(200, openai_body(json.dumps(fixture))), (200, openai_body(json.dumps(repaired)))],
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        draft, label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
+    assert label.startswith("groq:"), label
+    urls = [url for url, _payload in calls]
+    last_gemini = max(index for index, url in enumerate(urls) if "generativelanguage" in url)
+    first_after = urls[last_gemini + 1]
+    assert "api.groq.com" in first_after, urls
+    assert generate_guide.validate_draft(draft, EXISTING) == []
+
+
+check("the repair pass asks the tier that answered first, not a dead Gemini again", repair_starts_at_the_answering_tier)
+
 print(f"\n{passed} pipeline checks passed")

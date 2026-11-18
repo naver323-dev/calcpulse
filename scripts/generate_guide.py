@@ -236,17 +236,31 @@ def call_with_fallback(
     models: list[str],
     log=print,
     transport=None,
+    start_tier: str = "",
 ) -> tuple[dict, str]:
-    """Gemini -> Groq -> GitHub Models, every tier free.
+    """Gemini -> Groq -> OpenRouter, every tier free.
 
     A quota answer on one tier moves to the next instead of ending the day. Only when
     every reachable tier is out does this surface QuotaError (skip today, exit 0); a
     broken key or an unreachable service surfaces ApiError (exit 3) so it gets noticed.
+
+    start_tier asks the tier that wrote the draft to repair it first, so a repair pass
+    does not spend four minutes on a Gemini tier that already answered 503.
     """
     env = dict(os.environ)
     if models:
         env["GEMINI_MODEL"] = ",".join(models)
-    kwargs = {"log": log, "temperature": 0.7, "max_tokens": 8192, "providers": PROVIDER_ORDER, "env": env}
+    providers = list(PROVIDER_ORDER)
+    if start_tier in providers:
+        index = providers.index(start_tier)
+        providers = providers[index:] + providers[:index]
+    kwargs = {
+        "log": log,
+        "temperature": 0.7,
+        "max_tokens": 8192,
+        "providers": providers,
+        "env": env,
+    }
     if transport is not None:
         kwargs["transport"] = transport
         kwargs["sleep"] = lambda _seconds: None
@@ -745,6 +759,10 @@ def generate_draft(
     draft, model = call_with_fallback(SYSTEM_PROMPT, user, models, log, transport=transport)
     draft = normalize_draft(draft, topic["family"])
     problems = validate_draft(draft, slugs)
+    # A repair can come back worse than the draft it was fixing (a model that answers with
+    # a stub, or a smaller tier that loses the article). Keep the pass with the fewest
+    # problems instead of letting the last answer win.
+    best = (draft, model, problems)
 
     for _ in range(GENERATION_ATTEMPTS - 1):
         if not problems:
@@ -757,10 +775,28 @@ def generate_draft(
             + "\n".join(f"- {problem}" for problem in problems)
             + "\n\nReturn the complete corrected JSON object only, with the same shape."
         )
-        draft, model = call_with_fallback(SYSTEM_PROMPT, repair, models, log, transport=transport)
+        try:
+            draft, model = call_with_fallback(
+                SYSTEM_PROMPT,
+                repair,
+                models,
+                log,
+                transport=transport,
+                start_tier=llm_fallback.provider_of_label(best[1]),
+            )
+        except (QuotaError, ApiError) as exc:
+            # No free tier is left for the repair. The draft on hand may still be good
+            # enough below; a dead repair must not turn into a red run.
+            log(f"  ! the repair pass found no free tier ({exc})")
+            break
         draft = normalize_draft(draft, topic["family"])
         problems = validate_draft(draft, slugs)
+        if len(problems) < len(best[2]):
+            best = (draft, model, problems)
+        else:
+            log(f"  · the repair came back with {len(problems)} check(s); keeping the earlier draft")
 
+    draft, model, problems = best
     if problems:
         raise ValidationError(problems)
     return draft, model
