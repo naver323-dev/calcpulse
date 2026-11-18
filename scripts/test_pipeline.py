@@ -457,7 +457,8 @@ def worse_repair_keeps_the_first_draft() -> None:
     stub = json.dumps({"slug": "stub", "sections": []})
     transport, _calls = sequencer({
         "generativelanguage": (429, "quota"),
-        "api.groq.com": [(200, openai_body(json.dumps(fixture))), (200, openai_body(stub))],
+        "api.groq.com": (200, openai_body(json.dumps(fixture))),
+        "openrouter.ai/api": (200, openai_body(stub)),
     })
     topic = {
         "source": "Hacker News",
@@ -479,13 +480,14 @@ def worse_repair_keeps_the_first_draft() -> None:
 check("a repair that comes back worse does not replace the draft it was fixing", worse_repair_keeps_the_first_draft)
 
 
-def repair_starts_at_the_answering_tier() -> None:
+def faq_only_repair_keeps_the_article() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     fixture["faq"][3]["a"] = "Too short."
-    repaired = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixed_faq = json.loads(FIXTURE.read_text(encoding="utf-8"))["faq"]
     transport, calls = sequencer({
-        "generativelanguage": (503, '{"error":{"status":"UNAVAILABLE"}}'),
-        "api.groq.com": [(200, openai_body(json.dumps(fixture))), (200, openai_body(json.dumps(repaired)))],
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (200, openai_body(json.dumps(fixture))),
+        "openrouter.ai/api": (200, openai_body(json.dumps({"faq": fixed_faq}))),
     })
     topic = {
         "source": "Hacker News",
@@ -496,14 +498,41 @@ def repair_starts_at_the_answering_tier() -> None:
     }
     with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
         draft, label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
-    assert label.startswith("groq:"), label
+    assert generate_guide.validate_draft(draft, EXISTING) == [], "the merged draft failed the validator"
+    assert draft["slug"] == fixture["slug"], "the article must not be rewritten for a short FAQ answer"
+    assert label.startswith("openrouter:"), label
+    faq_prompt = calls[-1][1]["messages"][-1]["content"]
+    assert "Only these FAQ answers" in faq_prompt, faq_prompt[:200]
+
+
+check("a short FAQ answer is repaired on its own and the article is kept", faq_only_repair_keeps_the_article)
+
+
+def repair_does_not_return_to_a_dead_tier() -> None:
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    fixture["faq"][2]["a"] = "Too short."
+    fixed_faq = json.loads(FIXTURE.read_text(encoding="utf-8"))["faq"]
+    transport, calls = sequencer({
+        "generativelanguage": (503, '{"error":{"status":"UNAVAILABLE"}}'),
+        "api.groq.com": (200, openai_body(json.dumps(fixture))),
+        "openrouter.ai/api": (200, openai_body(json.dumps({"faq": fixed_faq}))),
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        draft, _label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
     urls = [url for url, _payload in calls]
-    last_gemini = max(index for index, url in enumerate(urls) if "generativelanguage" in url)
-    first_after = urls[last_gemini + 1]
-    assert "api.groq.com" in first_after, urls
+    first_groq = next(index for index, url in enumerate(urls) if "api.groq.com" in url)
+    after = urls[first_groq + 1:]
+    assert after and not any("generativelanguage" in url for url in after), urls
     assert generate_guide.validate_draft(draft, EXISTING) == []
 
 
-check("the repair pass asks the tier that answered first, not a dead Gemini again", repair_starts_at_the_answering_tier)
+check("a repair after a failed Gemini pass does not wait on Gemini again", repair_does_not_return_to_a_dead_tier)
 
 print(f"\n{passed} pipeline checks passed")

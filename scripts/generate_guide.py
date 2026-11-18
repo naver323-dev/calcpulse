@@ -78,7 +78,7 @@ API_BASE = llm_fallback.GEMINI_BASE
 # far more free headroom. No Search grounding — it has no free quota and burns retries.
 DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
 PROVIDER_ORDER = llm_fallback.DEFAULT_PROVIDERS
-GENERATION_ATTEMPTS = 2
+GENERATION_ATTEMPTS = 3
 MAX_PER_RUN = 1
 
 # topic family -> (component, calculator label for the registry, anchor guide for links)
@@ -228,6 +228,20 @@ def build_user_prompt(topic: dict, existing: list[dict], date: str) -> str:
         ensure_ascii=False,
         indent=2,
     )
+
+
+def next_tier(tier: str) -> str:
+    """The tier after the one that wrote the draft, wrapping around.
+
+    The writer just failed a check on its own draft; a fresh tier repairing it has the
+    better record here, and starting one step later means a Gemini that is answering 503
+    is not asked again — the pass that took four minutes of timeouts before. If that tier
+    is down as well the chain walks on through the rest of the order and comes back.
+    """
+    order = list(PROVIDER_ORDER)
+    if tier not in order:
+        return order[0]
+    return order[(order.index(tier) + 1) % len(order)]
 
 
 def call_with_fallback(
@@ -748,6 +762,42 @@ def log(message: str) -> None:
     print(message, file=sys.stderr)
 
 
+def faq_repair_targets(problems: list[str]) -> list[int]:
+    """The FAQ entries the validator called too short or too long, if that is all it found.
+
+    A short FAQ answer is the failure the Groq tier repeats: the article is there, one or
+    two answers are a line long. Rewriting the whole guide for that came back worse every
+    time, so this case asks for the four answers only.
+    """
+    targets: list[int] = []
+    for problem in problems:
+        match = re.match(r"^faq\[(\d+)\]\.a must be 40-130 words$", problem)
+        if not match:
+            return []
+        targets.append(int(match.group(1)))
+    return targets
+
+
+def faq_only_prompt(user: str, draft: dict, targets: list[int]) -> str:
+    entries = draft.get("faq") or []
+    current = json.dumps(
+        [
+            {"q": entry.get("q", ""), "a": entry.get("a", ""), "words": _words(str(entry.get("a", "")))}
+            for entry in entries
+        ],
+        ensure_ascii=False,
+        indent=2,
+    )
+    listed = ", ".join(f"faq[{index}]" for index in targets)
+    return (
+        f"{user}\n\nThe article itself is fine. Only these FAQ answers are outside the 40-130 word "
+        f"contract: {listed}.\n\nCurrent FAQ:\n{current}\n\nReturn only this JSON object, with no "
+        'other keys: {"faq": [{"q": "the same question", "a": "the answer, 50-110 words"}]} — '
+        "all four entries, the questions unchanged, every answer a short paragraph of 50-110 words "
+        "that answers the question directly with a number or a threshold where it can."
+    )
+
+
 def generate_draft(
     topic: dict,
     existing: list[dict],
@@ -767,29 +817,41 @@ def generate_draft(
     for _ in range(GENERATION_ATTEMPTS - 1):
         if not problems:
             break
-        log(f"  ! draft failed {len(problems)} check(s); asking for one repair")
-        for problem in problems[:12]:
-            log(f"    - {problem}")
-        repair = (
-            f"{user}\n\nYour previous answer failed these checks:\n"
-            + "\n".join(f"- {problem}" for problem in problems)
-            + "\n\nReturn the complete corrected JSON object only, with the same shape."
-        )
+        targets = faq_repair_targets(problems)
+        if targets:
+            log(f"  ! {len(problems)} FAQ answer(s) outside 40-130 words; asking for the FAQ only")
+            repair = faq_only_prompt(user, best[0], targets)
+        else:
+            log(f"  ! draft failed {len(problems)} check(s); asking for one repair")
+            for problem in problems[:12]:
+                log(f"    - {problem}")
+            repair = (
+                f"{user}\n\nYour previous answer failed these checks:\n"
+                + "\n".join(f"- {problem}" for problem in problems)
+                + "\n\nReturn the complete corrected JSON object only, with the same shape."
+            )
         try:
-            draft, model = call_with_fallback(
+            answer, model = call_with_fallback(
                 SYSTEM_PROMPT,
                 repair,
                 models,
                 log,
                 transport=transport,
-                start_tier=llm_fallback.provider_of_label(best[1]),
+                start_tier=next_tier(llm_fallback.provider_of_label(best[1])),
             )
         except (QuotaError, ApiError) as exc:
             # No free tier is left for the repair. The draft on hand may still be good
             # enough below; a dead repair must not turn into a red run.
             log(f"  ! the repair pass found no free tier ({exc})")
             break
-        draft = normalize_draft(draft, topic["family"])
+        if targets:
+            # The answer was asked to carry the FAQ alone; keep the rest of the draft.
+            if not isinstance(answer.get("faq"), list):
+                log("  · the FAQ-only repair came back without a faq list; keeping the earlier draft")
+                break
+            draft = normalize_draft({**best[0], "faq": answer["faq"]}, topic["family"])
+        else:
+            draft = normalize_draft(answer, topic["family"])
         problems = validate_draft(draft, slugs)
         if len(problems) < len(best[2]):
             best = (draft, model, problems)
