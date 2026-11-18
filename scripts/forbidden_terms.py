@@ -59,6 +59,8 @@ REQUIRED_PAGES: tuple[tuple[str, str], ...] = (
     ("guides/ai-api-cost-calculator/index.html", "LLM API cost calculator"),
     ("guides/saas-break-even-calculator/index.html", "SaaS break-even calculator"),
     ("guides/payment-fee-calculator/index.html", "Payment fee calculator"),
+    ("log/index.html", "The log behind the calculators"),
+    ("log/day-001-zero-cost-stack/index.html", "What broke"),
     ("vault/index.html", "Ten prompts that hold their shape"),
     ("datasets/index.html", "Open data, cleaned weekly"),
     ("about/index.html", "About CalcPulse"),
@@ -66,6 +68,8 @@ REQUIRED_PAGES: tuple[tuple[str, str], ...] = (
     ("affiliate-disclosure/index.html", "Affiliate disclosure"),
     ("llms.txt", "CalcPulse"),
     ("sitemap.xml", "/guides/ai-api-cost-calculator/"),
+    ("sitemap.xml", "/log/day-001-zero-cost-stack/"),
+    ("llms.txt", "## Build log"),
     ("robots.txt", "Sitemap:"),
 )
 

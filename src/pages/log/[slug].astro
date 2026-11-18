@@ -1,0 +1,288 @@
+---
+/**
+ * /log/<slug>/ — one build log entry.
+ *
+ * The four headings are fixed across entries (Constraint, What broke, Numbers,
+ * Next test) so two entries can be read side by side. Content comes from
+ * src/data/buildlog.ts; nothing here should introduce a figure that is not in the
+ * entry's `numbers` or prose.
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { logEntries, automatedChecks, infraCostUsd } from '../../data/buildlog';
+
+export function getStaticPaths() {
+  return logEntries.map((entry) => ({ params: { slug: entry.slug }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const origin = (Astro.site ?? new URL('https://calcpulse.pages.dev')).origin;
+
+// Checkout stays off-site. The URLs are the verified listings; the build environment
+// can override them without touching this page (same pattern as /vault/).
+const vaultUrl =
+  (import.meta.env.PUBLIC_GUMROAD_VAULT_URL ?? '').trim() ||
+  'https://calcpulse.gumroad.com/l/ai-workflow-vault';
+const datasetUrl =
+  (import.meta.env.PUBLIC_GUMROAD_DATASET_URL ?? '').trim() ||
+  'https://calcpulse.gumroad.com/l/calcpulse-opendata-weekly';
+
+const logId = `day-${String(entry.day).padStart(3, '0')}`;
+const newer = logEntries.find((other) => other.day === entry.day + 1);
+const older = logEntries.find((other) => other.day === entry.day - 1);
+
+const jsonLd: Record<string, unknown>[] = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: entry.title,
+    description: entry.description,
+    url: `${origin}/log/${entry.slug}/`,
+    mainEntityOfPage: `${origin}/log/${entry.slug}/`,
+    datePublished: entry.published,
+    dateModified: entry.updated,
+    inLanguage: 'en',
+    author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+    publisher: { '@id': `${origin}/#organization` },
+    isPartOf: {
+      '@type': 'Blog',
+      name: 'CalcPulse build log',
+      url: `${origin}/log/`,
+    },
+    about: entry.tools.map((tool) => ({
+      '@type': 'WebApplication',
+      name: tool.label,
+      url: `${origin}${tool.href}`,
+    })),
+    keywords: ['build in public', 'zero-cost stack', 'static site', 'automated tests'],
+  },
+];
+
+const cta = {
+  vault: {
+    kicker: 'The paid companion',
+    title: 'The workflow vault',
+    body: 'Ten system prompts and ten automation snippets, each with the input it expects, what a good result looks like and a note on where it breaks. $5 for the starter set, $14 for the complete bundle. Three of the files are free to read in full first.',
+    cta: 'The files, on Gumroad — $14',
+    url: vaultUrl,
+    product: 'vault',
+  },
+  dataset: {
+    kicker: 'Open data',
+    title: 'Open-data weekly packs',
+    body: 'Fourteen public macro and AI-ecosystem series, rebuilt every Monday with the week-over-week change, a 12-period z-score and an outlier flag. Six series and a sample CSV are free; the full pack is $9.',
+    cta: 'The CSV pack, on Gumroad — $9',
+    url: datasetUrl,
+    product: 'dataset',
+  },
+};
+---
+
+<BaseLayout title={`${entry.title} — CalcPulse build log`} description={entry.description} jsonLd={jsonLd} updated={entry.updated}>
+  <article>
+    <header class="border-b border-ink-200 bg-white">
+      <div class="mx-auto max-w-3xl px-4 sm:px-6 py-12">
+        <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+          <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+          <a href="/log/" class="hover:text-ink-600">Build log</a> <span aria-hidden="true">/</span>
+          Day {entry.day}
+        </nav>
+
+        <div class="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <span class="rounded-full bg-pulse-50 px-2.5 py-1 font-semibold uppercase tracking-wider text-pulse-700">
+            Day {entry.day}
+          </span>
+          <time datetime={entry.published} class="text-ink-400">{entry.published}</time>
+          <span class="text-ink-400">· {entry.minutes} min read</span>
+        </div>
+
+        <h1 class="mt-4 text-3xl font-semibold leading-tight tracking-tight text-ink-950 sm:text-4xl">
+          {entry.title}
+        </h1>
+        <p class="mt-4 max-w-2xl text-lg leading-relaxed text-ink-600">{entry.description}</p>
+
+        <dl class="mt-8 grid gap-3 sm:grid-cols-3">
+          <div class="rounded-lg border border-ink-200 px-3 py-2">
+            <dt class="text-xs uppercase tracking-wider text-ink-400">Infra cost</dt>
+            <dd class="mt-0.5 text-lg font-semibold text-ink-950">${infraCostUsd.toFixed(2)}/mo</dd>
+          </div>
+          <div class="rounded-lg border border-ink-200 px-3 py-2">
+            <dt class="text-xs uppercase tracking-wider text-ink-400">Checks passing</dt>
+            <dd class="mt-0.5 text-lg font-semibold text-ink-950">{automatedChecks}/{automatedChecks}</dd>
+          </div>
+          <div class="rounded-lg border border-ink-200 px-3 py-2">
+            <dt class="text-xs uppercase tracking-wider text-ink-400">Ad slots</dt>
+            <dd class="mt-0.5 text-lg font-semibold text-ink-950">0</dd>
+          </div>
+        </dl>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-3xl px-4 sm:px-6 py-12">
+      <section aria-labelledby="constraint">
+        <h2 id="constraint" class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">
+          1 · The constraint
+        </h2>
+        {
+          entry.constraint.map((paragraph) => (
+            <p class="mt-4 text-base leading-relaxed text-ink-700">{paragraph}</p>
+          ))
+        }
+      </section>
+
+      <section aria-labelledby="broke" class="mt-14">
+        <h2 id="broke" class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">
+          2 · What broke
+        </h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-500">
+          Four things failed before anything shipped. They are here in the order they happened,
+          because the order is the point: each one moved the build closer to what the budget could
+          actually hold.
+        </p>
+        {
+          entry.failures.map((failure) => (
+            <div class="mt-8">
+              <h3 class="text-lg font-semibold text-ink-950">{failure.title}</h3>
+              {failure.paragraphs.map((paragraph) => (
+                <p class="mt-3 text-base leading-relaxed text-ink-700">{paragraph}</p>
+              ))}
+            </div>
+          ))
+        }
+      </section>
+
+      <section aria-labelledby="numbers" class="mt-14">
+        <h2 id="numbers" class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">
+          3 · Numbers
+        </h2>
+        <p class="mt-3 text-sm leading-relaxed text-ink-500">{entry.numbersIntro}</p>
+
+        <div class="mt-5 overflow-x-auto">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr class="border-b border-ink-300 text-xs uppercase tracking-wider text-ink-400">
+                <th scope="col" class="py-2 pr-4 font-semibold">What</th>
+                <th scope="col" class="py-2 pr-4 font-semibold">Value</th>
+                <th scope="col" class="py-2 font-semibold">How it is produced</th>
+              </tr>
+            </thead>
+            <tbody>
+              {
+                entry.numbers.map((row) => (
+                  <tr class="border-b border-ink-200 align-top">
+                    <th scope="row" class="py-3 pr-4 font-medium text-ink-950">{row.label}</th>
+                    <td class="py-3 pr-4 font-semibold whitespace-nowrap text-ink-950">{row.value}</td>
+                    <td class="py-3 text-ink-600">{row.note}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CTA 1 of 2: straight after the figures, as one box, not a banner. -->
+      <aside class="mt-10 rounded-xl border border-ink-200 bg-white p-5" aria-label={cta.vault.title}>
+        <p class="text-xs font-semibold uppercase tracking-wider text-pulse-600">{cta.vault.kicker}</p>
+        <p class="mt-1 font-semibold text-ink-950">{cta.vault.title}</p>
+        <p class="mt-2 text-sm leading-relaxed text-ink-600">{cta.vault.body}</p>
+        <a
+          href={cta.vault.url}
+          rel="noopener"
+          class="mt-3 inline-flex text-sm font-semibold text-pulse-600 hover:text-pulse-700"
+          data-ga-event="gumroad_click"
+          data-ga-product={cta.vault.product}
+          data-ga-log-id={logId}
+        >
+          {cta.vault.cta} →
+        </a>
+        <p class="mt-2 text-xs text-ink-400">
+          Or read the three free samples on
+          <a
+            href="/vault/"
+            class="underline hover:text-ink-600"
+            data-ga-event="sample_view"
+            data-ga-sample="vault-index"
+            data-ga-log-id={logId}
+          >the vault page</a>.
+        </p>
+      </aside>
+
+      <!-- CTA 2 of 2: immediately before the next test. -->
+      <aside class="mt-8 rounded-xl border border-ink-200 bg-ink-50 p-5" aria-label={cta.dataset.title}>
+        <p class="text-xs font-semibold uppercase tracking-wider text-pulse-600">{cta.dataset.kicker}</p>
+        <p class="mt-1 font-semibold text-ink-950">{cta.dataset.title}</p>
+        <p class="mt-2 text-sm leading-relaxed text-ink-600">{cta.dataset.body}</p>
+        <a
+          href={cta.dataset.url}
+          rel="noopener"
+          class="mt-3 inline-flex text-sm font-semibold text-pulse-600 hover:text-pulse-700"
+          data-ga-event="gumroad_click"
+          data-ga-product={cta.dataset.product}
+          data-ga-log-id={logId}
+        >
+          {cta.dataset.cta} →
+        </a>
+      </aside>
+
+      <section aria-labelledby="next" class="mt-14">
+        <h2 id="next" class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">
+          4 · Next test
+        </h2>
+        {
+          entry.nextTest.map((paragraph) => (
+            <p class="mt-4 text-base leading-relaxed text-ink-700">{paragraph}</p>
+          ))
+        }
+      </section>
+
+      <section aria-labelledby="tools" class="mt-12 border-t border-ink-200 pt-8">
+        <h2 id="tools" class="text-sm font-semibold text-ink-950">The calculators this log is about</h2>
+        <ul class="mt-3 space-y-2 text-sm">
+          {
+            entry.tools.map((tool) => (
+              <li>
+                <a
+                  href={tool.href}
+                  class="font-semibold text-pulse-600 hover:text-pulse-700"
+                  data-ga-event="log_to_tool_click"
+                  data-ga-tool={tool.href}
+                  data-ga-log-id={logId}
+                >
+                  {tool.label} →
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <p class="mt-4 text-xs leading-relaxed text-ink-400">
+          Written from collected logs; no figure appears here that was not produced by a command or
+          a dashboard. Corrections are made in place and the modification date above changes with
+          them.
+        </p>
+      </section>
+
+      <nav class="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-ink-200 pt-6 text-sm" aria-label="Log navigation">
+        <a href="/log/" class="font-semibold text-pulse-600 hover:text-pulse-700">← All entries</a>
+        <span class="text-ink-400">
+          {newer ? (
+            <a href={`/log/${newer.slug}/`} class="hover:text-ink-600">Day {newer.day} →</a>
+          ) : (
+            <>Next entry: Friday, built from two or three days of logs</>
+          )}
+          {older && (
+            <>
+              {' · '}
+              <a href={`/log/${older.slug}/`} class="hover:text-ink-600">← Day {older.day}</a>
+            </>
+          )}
+        </span>
+      </nav>
+    </div>
+  </article>
+</BaseLayout>
+
+<script is:inline define:vars={{ logId, day: entry.day }}>
+  if (typeof window.gtag === 'function') {
+    window.gtag('event', 'log_view', { log_id: logId, day: day });
+  }
+</script>

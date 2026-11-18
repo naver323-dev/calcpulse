@@ -104,6 +104,7 @@ const graphs = [siteGraph, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonL
         </a>
         <nav class="flex items-center gap-4 text-sm text-ink-600" aria-label="Main">
           <a href="/guides/" class="hover:text-ink-950">Guides</a>
+          <a href="/log/" class="hover:text-ink-950">Log</a>
           <a href="/vault/" class="hover:text-ink-950">Vault</a>
           <a href="/datasets/" class="hover:text-ink-950">Datasets</a>
           <a href="/about/" class="hover:text-ink-950">About</a>
@@ -124,6 +125,7 @@ const graphs = [siteGraph, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonL
           </p>
           <nav class="flex flex-wrap gap-4" aria-label="Footer">
             <a href="/guides/" class="hover:text-ink-950">Guides</a>
+            <a href="/log/" class="hover:text-ink-950">Build log</a>
             <a href="/vault/" class="hover:text-ink-950">Vault</a>
             <a href="/datasets/" class="hover:text-ink-950">Datasets</a>
             <a href="/about/" class="hover:text-ink-950">About</a>
@@ -135,5 +137,24 @@ const graphs = [siteGraph, ...(jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonL
         {updated && <p class="mt-3 text-ink-400">Last reviewed {updated}</p>}
       </div>
     </footer>
+
+    <!--
+      One delegated click listener for the four events the site reports (log_view,
+      log_to_tool_click, gumroad_click, sample_view). An element opts in with
+      data-ga-event and carries its own params as data-ga-*; nothing here is loaded
+      from a third party, and a click with no such attribute sends nothing.
+    -->
+    <script is:inline>
+      document.addEventListener('click', function (event) {
+        var target = event.target instanceof Element ? event.target.closest('[data-ga-event]') : null;
+        if (!target || typeof window.gtag !== 'function') return;
+        var params = {};
+        ['product', 'log_id', 'tool', 'sample'].forEach(function (key) {
+          var value = target.getAttribute('data-ga-' + key.replace('_', '-'));
+          if (value) params[key] = value;
+        });
+        window.gtag('event', target.getAttribute('data-ga-event'), params);
+      });
+    </script>
   </body>
 </html>

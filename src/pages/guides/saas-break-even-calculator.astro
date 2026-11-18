@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { guideBySlug } from '../../data/guides';
 import OfferSlot from '../../components/OfferSlot.astro';
+import BuildLogNote from '../../components/BuildLogNote.astro';
 import SaasRoiCalculator from '../../components/SaasRoiCalculator.astro';
 
 const guide = guideBySlug('saas-break-even-calculator');
@@ -179,6 +180,7 @@ const jsonLd = {
         </p>
       </aside>
     <OfferSlot class="mt-4 max-w-3xl" />
+    <BuildLogNote class="mt-4 max-w-3xl" />
 
       </article>
   </div>

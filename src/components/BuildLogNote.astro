@@ -1,0 +1,33 @@
+---
+/**
+ * One internal link from a calculator page to the build log.
+ *
+ * It sits under the offer slot, not in the header, because it answers a different
+ * question from the guide above it: not "what does this cost" but "is this thing
+ * maintained, and how would I know". The check count is read from the same data
+ * the /log/ badges use, so it cannot drift.
+ */
+import { automatedChecks } from '../data/buildlog';
+
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<aside class={`rounded-xl border border-ink-200 bg-ink-50/60 p-5 ${className ?? ''}`}>
+  <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">How this was built</p>
+  <a
+    href="/log/"
+    class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700"
+    data-ga-event="log_to_tool_click"
+    data-ga-tool="log-index"
+  >
+    The build log — what broke, what it costs, what is checked →
+  </a>
+  <p class="mt-1 text-sm leading-relaxed text-ink-600">
+    The operating record behind this page: zero infrastructure cost, {automatedChecks} automated
+    checks before anything is published, and the test that is running now.
+  </p>
+</aside>

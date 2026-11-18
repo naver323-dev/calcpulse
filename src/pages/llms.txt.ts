@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { guides } from '../data/guides';
+import { automatedChecks, infraCostUsd, latestFirst } from '../data/buildlog';
 
 export const GET: APIRoute = ({ site }) => {
   const origin = (site ?? new URL('https://calcpulse.pages.dev')).origin;
@@ -8,6 +9,13 @@ export const GET: APIRoute = ({ site }) => {
     .map(
       (guide) =>
         `- [${guide.h1}](${origin}/guides/${guide.slug}/): ${guide.summary} Calculator: ${guide.calculator}. Reviewed ${guide.updated}.`,
+    )
+    .join('\n');
+
+  const logLines = latestFirst()
+    .map(
+      (entry) =>
+        `- [${entry.title}](${origin}/log/${entry.slug}/) — ${entry.summary} Published ${entry.published}.`,
     )
     .join('\n');
 
@@ -25,6 +33,12 @@ export const GET: APIRoute = ({ site }) => {
 ## Guides
 
 ${guideLines}
+
+## Build log
+
+An operations record, not a blog: each entry states the constraint, what broke, the measured numbers and the next test. It exists to show that the site is maintained and that every figure on it is produced by a command — infrastructure cost $${infraCostUsd.toFixed(2)}/month, ${automatedChecks} automated checks before a publish, no advertising network.
+
+${logLines}
 
 ## Products
 
