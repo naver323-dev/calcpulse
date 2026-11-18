@@ -72,6 +72,20 @@ export const guides: Guide[] = [
     keywords: ["fine tuning cost", "llm training vs prompting", "token volume math", "model adaptation budget"],
     topic: "AI cost",
   },
+  {
+    slug: "payment-reserve-cashflow-cost",
+    title: "The true cash cost of payment processor reserves",
+    h1: "How payment processor reserves drain your operating cash flow",
+    description:
+      "Calculate the hidden borrowing cost when your payment processor withholds a percentage of your revenue in a reserve account.",
+    summary:
+      "Payment processor reserves hold back a portion of your revenue to cover chargeback risks, creating a hidden cash flow deficit that requires short-term working capital to bridge.",
+    calculator: "Payment fee calculator",
+    updated: '2026-11-19',
+    minutes: 4,
+    keywords: ["payment processor reserve", "merchant account hold", "rolling reserve cash flow", "processing reserve cost"],
+    topic: "Small-business finance",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
