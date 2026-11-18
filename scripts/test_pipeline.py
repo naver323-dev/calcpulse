@@ -559,6 +559,34 @@ def title_only_repair_keeps_the_article() -> None:
 check("a title that is the only failed check is repaired without rewriting the guide", title_only_repair_keeps_the_article)
 
 
+def short_body_is_repaired_on_the_sections() -> None:
+    full = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    short = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    for section in short["sections"]:
+        section["paragraphs"] = section["paragraphs"][:1]
+    transport, calls = sequencer({
+        "generativelanguage": (429, "quota"),
+        "api.groq.com": (200, openai_body(json.dumps(short))),
+        "openrouter.ai/api": (200, openai_body(json.dumps({"sections": full["sections"]}))),
+    })
+    topic = {
+        "source": "Hacker News",
+        "source_title": "Show HN: a fixture story",
+        "source_url": "https://news.ycombinator.com/item?id=1",
+        "points": 12,
+        "family": "AI cost",
+    }
+    with mock.patch.dict(os.environ, ALL_KEYS, clear=False):
+        draft, _label = generate_guide.generate_draft(topic, [], ["gemini-3.8-flash"], transport=transport)
+    assert generate_guide.validate_draft(draft, EXISTING) == [], "the sections repair did not lengthen the body"
+    assert draft["title"] == full["title"], "the title that already passed must survive"
+    assert "Only `sections` failed" in calls[-1][1]["messages"][-1]["content"]
+    assert "expand the existing paragraphs" in calls[-1][1]["messages"][-1]["content"]
+
+
+check("a body under the word floor is lengthened by repairing the sections alone", short_body_is_repaired_on_the_sections)
+
+
 def repair_does_not_return_to_a_dead_tier() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     fixture["faq"][2]["a"] = "Too short."

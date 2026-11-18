@@ -78,7 +78,7 @@ API_BASE = llm_fallback.GEMINI_BASE
 # far more free headroom. No Search grounding — it has no free quota and burns retries.
 DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite"]
 PROVIDER_ORDER = llm_fallback.DEFAULT_PROVIDERS
-GENERATION_ATTEMPTS = 3
+GENERATION_ATTEMPTS = 4
 MAX_PER_RUN = 1
 
 # topic family -> (component, calculator label for the registry, anchor guide for links)
@@ -834,6 +834,11 @@ SINGLE_FIELD_RULES = (
     ("faq[", "faq"),
     ("faq must be", "faq"),
     ("checklist", "checklist"),
+    # A short body or a paragraph rule is about the sections alone: the title, description
+    # and FAQ that already passed are not rewritten to lengthen the article.
+    ("body is", "sections"),
+    ("sections[", "sections"),
+    ("sections must be", "sections"),
 )
 
 
@@ -853,9 +858,22 @@ def single_field_repair(problems: list[str]) -> str:
 def field_only_prompt(user: str, draft: dict, field: str, problems: list[str]) -> str:
     current = json.dumps(draft.get(field), ensure_ascii=False, indent=2)
     listed = "\n".join(f"- {problem}" for problem in problems)
+    extra = ""
+    if field == "sections":
+        body_words = sum(
+            _words(str(paragraph))
+            for section in draft.get("sections") or []
+            if isinstance(section, dict)
+            for paragraph in section.get("paragraphs") or []
+        )
+        extra = (
+            f" The five sections together are {body_words} words and the contract is 780-1700; "
+            "expand the existing paragraphs with the arithmetic and examples that belong to them "
+            "(no padding sentences, no new topics), reaching about 900-1100 words."
+        )
     return (
         f"{user}\n\nThe rest of the draft passed every check. Only `{field}` failed:\n{listed}\n\n"
-        f"Current value:\n{current[:2500]}\n\n"
+        f"Current value:\n{current[:2500]}{extra}\n\n"
         f"Return only this JSON object and nothing else, with `{field}` corrected and the meaning "
         f"kept: {{\"{field}\": <the corrected value>}}."
     )
