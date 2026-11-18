@@ -452,6 +452,23 @@ def validate_draft(draft: dict, existing_slugs: set[str]) -> list[str]:
     return problems
 
 
+def reading_minutes(draft: dict) -> int:
+    """The reading time the page shows, derived from the words instead of asked from the model.
+
+    Models are unreliable at estimating how long their own text takes to read, and a draft
+    that is otherwise perfect failed the gate twice on this number alone. The words are the
+    editorial contract; the minutes label is arithmetic.
+    """
+    sections = draft.get("sections") or []
+    body = " ".join(
+        " ".join(str(paragraph) for paragraph in section.get("paragraphs") or [])
+        for section in sections
+        if isinstance(section, dict)
+    )
+    words = _words(str(draft.get("lede") or "")) + _words(body)
+    return max(4, min(14, round(words / 210)))
+
+
 def normalize_draft(draft: dict, topic_family: str) -> dict:
     """Small, mechanical fixes before validation: whitespace, a trailing period, the topic."""
     if not isinstance(draft, dict):
@@ -473,7 +490,11 @@ def normalize_draft(draft: dict, topic_family: str) -> dict:
     draft["title"] = title.rstrip(".")
     if isinstance(draft.get("keywords"), list):
         draft["keywords"] = [str(keyword).lower() for keyword in draft["keywords"]]
-    if isinstance(draft.get("minutes"), float):
+    if isinstance(draft.get("sections"), list):
+        # Derived, not generated: the validator's "minutes matches the body" rule can only
+        # fail when the model guessed the number.
+        draft["minutes"] = reading_minutes(draft)
+    elif isinstance(draft.get("minutes"), float):
         draft["minutes"] = int(draft["minutes"])
     return draft
 

@@ -508,6 +508,17 @@ def faq_only_repair_keeps_the_article() -> None:
 check("a short FAQ answer is repaired on its own and the article is kept", faq_only_repair_keeps_the_article)
 
 
+def minutes_follow_the_words() -> None:
+    source = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    source["minutes"] = 12
+    normalized = generate_guide.normalize_draft(json.loads(json.dumps(source)), source["topic"])
+    assert generate_guide.validate_draft(normalized, EXISTING) == [], "a guessed reading time must not fail the gate"
+    assert 4 <= normalized["minutes"] <= 9, normalized["minutes"]
+
+
+check("the reading time is derived from the body, not taken from the model", minutes_follow_the_words)
+
+
 def repair_does_not_return_to_a_dead_tier() -> None:
     fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
     fixture["faq"][2]["a"] = "Too short."
