@@ -70,7 +70,7 @@ export const logEntries: LogEntry[] = [
     summary:
       'The first entry. What the $0 constraint actually rules out, the four things that broke before launch, and the one metric this log will be judged on.',
     published: '2026-11-18',
-    updated: '2026-11-18',
+    updated: '2026-11-20',
     minutes: 6,
     constraint: [
       'The budget is $0.00 a month, not "$0 to start". No card is on file with any host, API or analytics service, no paid tier is switched on, and a change that would add a recurring charge has to replace something rather than sit beside it.',
