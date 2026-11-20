@@ -206,4 +206,28 @@ await check('Payment fee calculator reports fees, effective rate and net', async
   assert.notEqual(text('share-pct'), '—');
 });
 
+await check('Seller fee comparison ranks platforms and fills every row', async () => {
+  const ids = ['gr-direct', 'gr-discover', 'payhip', 'kofi', 'stripe', 'paypal'];
+  const inputs = { __formId: 'seller-form', price: '14', sales: '50' };
+  const pcts = { 'gr-direct': '12.9', 'gr-discover': '30', payhip: '7.9', kofi: '7.9', stripe: '2.9', paypal: '3.49' };
+  const fixes = { 'gr-direct': '0.8', 'gr-discover': '0', payhip: '0.3', kofi: '0.3', stripe: '0.3', paypal: '0.49' };
+  const outputs = ['out-best', 'out-spread'];
+  for (const id of ids) {
+    inputs[`pct-${id}`] = pcts[id];
+    inputs[`fix-${id}`] = fixes[id];
+    outputs.push(`fee-${id}`, `keep-${id}`, `rate-${id}`, `net-${id}`);
+  }
+  const { text } = await runPage({ bundlePrefix: 'SellerFeeCompare', inputs, outputs, description: 'seller' });
+
+  // $14 at 12.9% + $0.80: fee 2.606, keep 11.394 (81.4%), net 569.70 over 50 sales.
+  assert.equal(text('keep-gr-direct'), '$11.39');
+  assert.equal(text('rate-gr-direct'), '81.4%');
+  assert.equal(text('net-gr-direct'), '$569.70');
+  assert.equal(text('net-gr-discover'), '$490.00');
+  assert.equal(text('net-paypal'), '$651.07');
+  assert.equal(text('net-stripe'), '$664.70');
+  assert.match(text('out-best'), /Your own page with Stripe: \$664\.70 a month/);
+  assert.match(text('out-spread'), /\$174\.70 a month/);
+});
+
 console.log(`\n${passed} DOM checks passed`);
