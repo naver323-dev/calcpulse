@@ -100,6 +100,20 @@ export const guides: Guide[] = [
     keywords: ["llm reverse engineering cost", "ai code analysis pricing", "machine learning budget calculator"],
     topic: "AI cost",
   },
+  {
+    slug: 'seller-platform-fee-comparison',
+    title: 'Gumroad vs Payhip vs Ko-fi vs Stripe: What You Keep Per Sale',
+    h1: 'What you keep on a digital product, platform by platform',
+    description:
+      'Compare take-home on the same digital product across Gumroad, Payhip, Ko-fi, Stripe and PayPal. Fee per sale, keep rate and monthly net, with every rate editable.',
+    summary:
+      'Reduces each selling platform to one percentage and one fixed fee per sale, then shows fee per sale, keep rate and monthly net for your price and volume so the cheapest route at your ticket size is visible.',
+    calculator: 'Seller fee comparison',
+    updated: '2026-11-21',
+    minutes: 5,
+    keywords: ['gumroad fees calculator', 'gumroad vs payhip', 'ko-fi shop fees', 'digital product platform fees'],
+    topic: 'Small-business finance',
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
