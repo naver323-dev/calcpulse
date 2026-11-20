@@ -226,3 +226,76 @@ export function computePaymentFees(input: PaymentFeeInput): PaymentFeeResult {
     netPerTransaction: transactions > 0 ? netRevenue / transactions : 0,
   };
 }
+
+export interface SellerPlatformInput {
+  id: string;
+  /** Combined percentage of each sale kept by the platform and its payment processor, 0–1. */
+  percentFee: number;
+  /** Combined fixed fee per sale in USD. */
+  fixedFee: number;
+}
+
+export interface SellerPlatformsInput {
+  /** Price of one sale in USD. */
+  price: number;
+  /** Sales per month. */
+  salesPerMonth: number;
+  platforms: SellerPlatformInput[];
+}
+
+export interface SellerPlatformResult {
+  id: string;
+  feePerSale: number;
+  keepPerSale: number;
+  /** keepPerSale ÷ price, as a share (0.87 = 87%). */
+  keepRate: number;
+  monthlyFees: number;
+  monthlyNet: number;
+}
+
+export interface SellerPlatformsResult {
+  results: SellerPlatformResult[];
+  /** Id of the platform with the highest monthly net, or null when nothing is sold. */
+  bestId: string | null;
+  /** Monthly net of the best platform minus the worst, in USD. */
+  spread: number;
+}
+
+/**
+ * What a seller keeps on the same product across several platforms.
+ *
+ * Each platform is reduced to one percentage and one fixed fee per sale (platform fee plus
+ * processor fee). Per-sale fees are capped at the price, so a very small sale never goes
+ * negative. Refunds, taxes, currency conversion and payout fees are not modelled.
+ */
+export function computeSellerPlatforms(input: SellerPlatformsInput): SellerPlatformsResult {
+  const price = Math.max(0, safe(input.price));
+  const sales = Math.max(0, safe(input.salesPerMonth));
+
+  const results = input.platforms.map((platform): SellerPlatformResult => {
+    const percentFee = Math.min(1, Math.max(0, safe(platform.percentFee)));
+    const fixedFee = Math.max(0, safe(platform.fixedFee));
+    const feePerSale = Math.min(price, price * percentFee + fixedFee);
+    const keepPerSale = price - feePerSale;
+    return {
+      id: platform.id,
+      feePerSale,
+      keepPerSale,
+      keepRate: price > 0 ? keepPerSale / price : 0,
+      monthlyFees: feePerSale * sales,
+      monthlyNet: keepPerSale * sales,
+    };
+  });
+
+  if (results.length === 0 || price * sales <= 0) {
+    return { results, bestId: null, spread: 0 };
+  }
+
+  let best = results[0];
+  let worst = results[0];
+  for (const result of results) {
+    if (result.monthlyNet > best.monthlyNet) best = result;
+    if (result.monthlyNet < worst.monthlyNet) worst = result;
+  }
+  return { results, bestId: best.id, spread: best.monthlyNet - worst.monthlyNet };
+}
