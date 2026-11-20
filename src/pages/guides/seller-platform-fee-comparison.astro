@@ -1,0 +1,198 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import BuildLogNote from '../../components/BuildLogNote.astro';
+import SellerFeeCompare from '../../components/SellerFeeCompare.astro';
+
+const guide = guideBySlug('seller-platform-fee-comparison');
+
+const faq = [
+  {
+    q: 'Which platform is cheapest for a digital product?',
+    a: 'Taking payments through your own page with Stripe or PayPal has the lowest fees, because you pay only processing. The cost is that you handle delivery, sales tax and customer support yourself. A marketplace-style platform charges more and does that work for you. The calculator shows the fee side only, so weigh the work separately.',
+  },
+  {
+    q: 'Why does a $5 product lose so much more than a $50 one?',
+    a: 'Fixed fees. A fixed $0.80 on a $5 sale is 16% by itself, while on a $50 sale it is 1.6%. Below roughly $10 the fixed part usually matters more than the percentage, so compare platforms at your real price rather than at the headline rate.',
+  },
+  {
+    q: 'Does the Discover or marketplace rate always apply?',
+    a: 'No. On Gumroad the higher rate applies to sales where a new customer found you through its marketplace. Sales from your own profile or links use the direct rate. Which one you get depends on where the buyer came from, so run both rows and treat the real mix as somewhere between them.',
+  },
+  {
+    q: 'Are these rates current?',
+    a: 'They are the rates published on the review date at the top of this page. Platforms change pricing, so every rate in the table is editable. Check the source link for your platform before you decide.',
+  },
+  {
+    q: 'What does the comparison leave out?',
+    a: 'Refunds, sales tax or VAT, currency conversion, payout fees to your bank, volume discounts and plan upgrades. Each can change the ranking at some price and volume, so read one real statement before committing a catalog.',
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-21',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+
+const workedExample = [
+  { label: 'Price of one sale', value: '$14' },
+  { label: 'Sales per month', value: '50' },
+];
+
+const sources = [
+  { label: 'Gumroad pricing', href: 'https://gumroad.com/pricing' },
+  { label: 'Payhip pricing', href: 'https://payhip.com/pricing' },
+  { label: 'Ko-fi fees', href: 'https://help.ko-fi.com/hc/en-us/articles/360002506494-Does-Ko-fi-take-a-fee' },
+  { label: 'Stripe pricing', href: 'https://stripe.com/pricing' },
+  { label: 'PayPal business fees', href: 'https://www.paypal.com/us/business/fees' },
+];
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      Seller fees
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">Small-business finance</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          {guide.h1}
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          Selling a small digital product looks like a choice between a few platforms with similar
+          prices. It is not. At a $14 price the same sale leaves between 70% and 95% of the money in
+          your pocket depending on where it happens. This guide shows why, then gives you a calculator
+          to run your own price and volume.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed {guide.updated} · {guide.minutes} min read · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>One percentage and one fixed fee per sale</h2>
+        <p>
+          Every platform on the list can be reduced to two numbers: a percentage of the sale and a
+          fixed amount per sale. Where a platform and a payment processor both charge, add the parts.
+          Fee per sale is the price times the total percentage, plus the fixed amount. What you keep
+          is the price minus that.
+        </p>
+        <p>
+          Gumroad lists 10% plus $0.50 on direct sales and 30% on sales that come through its
+          marketplace. Its card processing sits on top of the direct rate according to its help
+          pages, so the table uses 12.9% plus $0.80 for a direct card sale. Payhip charges 5% on its
+          free plan and Ko-fi charges 5% on shop sales; in both cases the payment processor takes its
+          own fee, which the table approximates at 2.9% plus $0.30. Stripe lists 2.9% plus $0.30 for
+          domestic cards, and PayPal lists 3.49% plus $0.49 for checkout.
+        </p>
+
+        <h2>Why the fixed fee decides the ranking at small prices</h2>
+        <p>
+          A fixed fee does not shrink with the sale. $0.80 is 16% of a $5 product and 1.6% of a $50
+          product. That is why a platform with a lower headline percentage can lose to one with a
+          higher percentage but a smaller fixed amount, and why the answer changes when your price
+          changes. Run the same table at your cheapest and your most expensive product before
+          choosing.
+        </p>
+
+        <h2>Fees are not the whole job</h2>
+        <p>
+          The lowest rows are your own page with Stripe or PayPal. You also take on delivering the
+          file, collecting and paying sales tax in the places you sell, and answering customers. The
+          marketplace-style rows cost more because they do some or all of that. Whether the
+          difference is worth it depends on how many sales you make and how much of your time they
+          would take, which no fee table can tell you.
+        </p>
+      </div>
+
+      <SellerFeeCompare />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>A worked example, so you can sanity-check the output</h2>
+        <p>The default inputs are a small product at a common price.</p>
+        <ul>
+          {workedExample.map((row) => <li>{row.label}: <strong>{row.value}</strong></li>)}
+        </ul>
+        <p>
+          At those inputs a direct Gumroad sale keeps <strong>$11.39</strong> of $14, or 81.4%, which
+          is <strong>$569.70</strong> a month. A Gumroad Discover sale keeps <strong>$9.80</strong>,
+          or 70%, which is <strong>$490.00</strong>. Payhip Free and a Ko-fi shop sale each keep
+          <strong>$12.59</strong> (90.0%), or <strong>$629.70</strong>. PayPal keeps
+          <strong>$13.02</strong> (93.0%), or <strong>$651.07</strong>, and Stripe keeps
+          <strong>$13.29</strong> (95.0%), or <strong>$664.70</strong>. The gap between the best and
+          worst row is about <strong>$175 a month</strong> on $700 of sales.
+        </p>
+        <p>
+          Change the price to $50 and watch the rows move closer together, because the fixed part
+          stops dominating.
+        </p>
+
+        <h2>Where these rates come from</h2>
+        <p>Published pricing pages, read on {guide.updated}. Check the page for your platform before you rely on a number.</p>
+        <ul>
+          {sources.map((s) => <li><a href={s.href} rel="noopener nofollow">{s.label}</a></li>)}
+        </ul>
+
+        <h2>What this comparison leaves out</h2>
+        <p>
+          Refunds, sales tax and VAT, currency conversion, payout fees, volume discounts, paid plans
+          that lower the percentage, and any chargeback fees. Each of these can change the ranking at
+          some price and volume.
+        </p>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Next</p>
+        <a href="/guides/payment-fee-calculator/" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          What does your payment processor really keep each month? →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic with refunds and a monthly platform fee, for a shop with its own
+          processor account.
+        </p>
+      </aside>
+    <OfferSlot class="mt-4 max-w-3xl" />
+    <BuildLogNote class="mt-4 max-w-3xl" />
+
+      </article>
+  </div>
+</BaseLayout>
