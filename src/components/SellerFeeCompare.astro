@@ -1,0 +1,167 @@
+---
+/**
+ * Seller platform fee comparison: what you keep on the same product across platforms.
+ *
+ * Same conventions as the other calculators: every rate is an editable input, nothing is
+ * sent anywhere, arithmetic lives in src/lib/calculations.ts, and scripts/test_dom.mjs
+ * drives the ids used here. Rates are the published ones on the date in the guide; each
+ * row names its parts so a reader can change them when a platform changes its price.
+ */
+const platforms = [
+  { id: 'gr-direct', name: 'Gumroad, direct link', pct: 12.9, fixed: 0.8, parts: '10% + $0.50 Gumroad, plus 2.9% + $0.30 card processing' },
+  { id: 'gr-discover', name: 'Gumroad, found via Discover', pct: 30, fixed: 0, parts: '30% per sale, processing included' },
+  { id: 'payhip', name: 'Payhip Free plan', pct: 7.9, fixed: 0.3, parts: '5% Payhip, plus about 2.9% + $0.30 Stripe' },
+  { id: 'kofi', name: 'Ko-fi shop', pct: 7.9, fixed: 0.3, parts: '5% Ko-fi, plus about 2.9% + $0.30 Stripe' },
+  { id: 'stripe', name: 'Your own page with Stripe', pct: 2.9, fixed: 0.3, parts: '2.9% + $0.30, you handle tax and delivery' },
+  { id: 'paypal', name: 'Your own page with PayPal', pct: 3.49, fixed: 0.49, parts: '3.49% + $0.49, you handle tax and delivery' },
+];
+---
+
+      <section
+        class="mt-10 rounded-2xl border border-ink-200 bg-white p-5 sm:p-7 shadow-sm"
+        aria-labelledby="calc-heading"
+      >
+        <h2 id="calc-heading" class="text-lg font-semibold text-ink-950">Seller fee comparison</h2>
+        <p class="mt-1 text-sm text-ink-600">
+          Enter your price and volume, then edit any rate that has changed. Rates below are the
+          published ones on the review date at the top of this page.
+        </p>
+
+        <form id="seller-form" class="mt-6" novalidate>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="calc-field">
+              <label for="price" class="block text-sm font-medium text-ink-800">Price of one sale</label>
+              <input id="price" type="number" min="0" step="0.01" value="14" inputmode="decimal" />
+            </div>
+            <div class="calc-field">
+              <label for="sales" class="block text-sm font-medium text-ink-800">Sales per month</label>
+              <input id="sales" type="number" min="0" step="1" value="50" inputmode="numeric" />
+            </div>
+          </div>
+
+          <div class="mt-6 overflow-x-auto">
+            <table class="w-full text-sm">
+              <caption class="sr-only">Fees and take-home per platform</caption>
+              <thead>
+                <tr class="text-left text-xs uppercase tracking-wider text-ink-400">
+                  <th scope="col" class="py-2 pr-4 font-medium">Platform</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">Total %</th>
+                  <th scope="col" class="py-2 pr-4 font-medium">Fixed $</th>
+                  <th scope="col" class="py-2 pr-4 font-medium text-right">Fee per sale</th>
+                  <th scope="col" class="py-2 pr-4 font-medium text-right">You keep</th>
+                  <th scope="col" class="py-2 pr-4 font-medium text-right">Keep rate</th>
+                  <th scope="col" class="py-2 font-medium text-right">Net per month</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-ink-100 text-ink-800">
+                {
+                  platforms.map((p) => (
+                    <tr>
+                      <th scope="row" class="py-2 pr-4 text-left font-normal">
+                        {p.name}
+                        <span class="block text-xs text-ink-400">{p.parts}</span>
+                      </th>
+                      <td class="py-2 pr-4">
+                        <input id={`pct-${p.id}`} aria-label={`${p.name} total percentage`} type="number" min="0" max="100" step="0.01" value={p.pct} inputmode="decimal" class="w-20" />
+                      </td>
+                      <td class="py-2 pr-4">
+                        <input id={`fix-${p.id}`} aria-label={`${p.name} fixed fee`} type="number" min="0" step="0.01" value={p.fixed} inputmode="decimal" class="w-20" />
+                      </td>
+                      <td id={`fee-${p.id}`} class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                      <td id={`keep-${p.id}`} class="py-2 pr-4 text-right tabular-nums">$0.00</td>
+                      <td id={`rate-${p.id}`} class="py-2 pr-4 text-right tabular-nums text-ink-600">0.0%</td>
+                      <td id={`net-${p.id}`} class="py-2 text-right tabular-nums font-medium">$0.00</td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+        </form>
+
+        <noscript>
+          <p class="mt-6 rounded-lg bg-ink-100 px-4 py-3 text-sm text-ink-800">
+            This calculator does the arithmetic in your browser, so it needs JavaScript. The formula
+            is written out in the guide: fee per sale is the price times the total percentage, plus the
+            fixed fee.
+          </p>
+        </noscript>
+
+        <div class="mt-6 rounded-xl bg-ink-950 p-5 text-white" aria-live="polite">
+          <p class="text-xs uppercase tracking-wider text-ink-400">Highest take-home at these inputs</p>
+          <p id="out-best" class="mt-2 text-xl font-semibold">—</p>
+          <p id="out-spread" class="mt-1 text-xs text-ink-400">Enter a price and a sales count.</p>
+        </div>
+        <p class="mt-4 text-xs text-ink-400">
+          Rounded to the cent. Refunds, sales tax, currency conversion and payout fees are not
+          included. The calculator does not store or transmit anything; reload the page and it resets.
+        </p>
+      </section>
+
+<script>
+  import { computeSellerPlatforms } from '../lib/calculations';
+
+  const form = document.getElementById('seller-form') as HTMLFormElement | null;
+
+  if (form) {
+    const platformIds = ['gr-direct', 'gr-discover', 'payhip', 'kofi', 'stripe', 'paypal'];
+    const names: Record<string, string> = {
+      'gr-direct': 'Gumroad, direct link',
+      'gr-discover': 'Gumroad, found via Discover',
+      payhip: 'Payhip Free plan',
+      kofi: 'Ko-fi shop',
+      stripe: 'Your own page with Stripe',
+      paypal: 'Your own page with PayPal',
+    };
+
+    const read = (id: string, fallback = 0): number => {
+      const node = document.getElementById(id) as HTMLInputElement | null;
+      if (!node) return fallback;
+      const value = Number.parseFloat(node.value);
+      return Number.isFinite(value) && value >= 0 ? value : fallback;
+    };
+    const set = (id: string, text: string) => {
+      const node = document.getElementById(id) as HTMLElement | null;
+      if (node) node.textContent = text;
+    };
+    const usd = (value: number): string =>
+      value.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+    const compute = () => {
+      const result = computeSellerPlatforms({
+        price: read('price'),
+        salesPerMonth: read('sales'),
+        platforms: platformIds.map((id) => ({
+          id,
+          percentFee: read(`pct-${id}`) / 100,
+          fixedFee: read(`fix-${id}`),
+        })),
+      });
+
+      for (const row of result.results) {
+        set(`fee-${row.id}`, usd(row.feePerSale));
+        set(`keep-${row.id}`, usd(row.keepPerSale));
+        set(`rate-${row.id}`, `${(row.keepRate * 100).toFixed(1)}%`);
+        set(`net-${row.id}`, usd(row.monthlyNet));
+      }
+
+      if (result.bestId) {
+        const best = result.results.find((row) => row.id === result.bestId);
+        set('out-best', `${names[result.bestId]}: ${usd(best ? best.monthlyNet : 0)} a month`);
+        set('out-spread', `${usd(result.spread)} a month between the best and the worst row.`);
+      } else {
+        set('out-best', '—');
+        set('out-spread', 'Enter a price and a sales count.');
+      }
+    };
+
+    form.addEventListener('input', compute);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    compute();
+  }
+</script>
