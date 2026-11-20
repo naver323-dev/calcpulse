@@ -19,6 +19,16 @@
       "source_url": "https://news.ycombinator.com/item?id=50510042",
       "model": "gemini-3.5-flash-lite",
       "published_at": "2026-11-18T20:08:27+00:00"
+    },
+    {
+      "date": "2026-11-20",
+      "slug": "llm-reverse-engineering-budget",
+      "title": "Estimating the cost of LLM‑assisted reverse engineering",
+      "family": "AI cost",
+      "source": "Hacker News",
+      "source_url": "https://www.slowchronicle.com/posts/llm-assisted-reverse-engineering",
+      "model": "groq:openai/gpt-oss-120b",
+      "published_at": "2026-11-20T08:38:50+00:00"
     }
   ],
   "skips": [],
@@ -34,6 +44,12 @@
       "mode": "generate",
       "slug": "payment-reserve-cashflow-cost",
       "model": "gemini-3.5-flash-lite"
+    },
+    {
+      "date": "2026-11-20",
+      "mode": "generate",
+      "slug": "llm-reverse-engineering-budget",
+      "model": "groq:openai/gpt-oss-120b"
     }
   ]
 }

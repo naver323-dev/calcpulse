@@ -1,0 +1,168 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import LlmApiCostCalculator from '../../components/LlmApiCostCalculator.astro';
+
+const guide = guideBySlug('llm-reverse-engineering-budget');
+
+const faq = [
+  {
+    q: "How do I choose the right token chunk size?",
+    a: "Chunk size balances context depth against token cost. Smaller chunks (e.g., 2 k tokens) keep each request cheap but increase the number of calls, adding fixed request fees. Larger chunks (e.g., 8 k tokens) reduce call count but may exceed the model’s context window, forcing truncation. Test a sample binary with both sizes, record the token count and number of calls, then pick the configuration that yields the lower total cost for your typical artefact.",
+  },
+  {
+    q: "Can I use a cheaper open‑source model instead of a commercial API?",
+    a: "Yes, but you must include the compute cost of hosting the model yourself. An open‑source model that costs $0 per token still requires GPU time; a 10 hour GPU instance at $2 per hour adds $20 to the monthly bill. Compare that $20 against the $0.0012 per‑1 000‑token commercial rate for the same token volume. If your token load is low, self‑hosting may be cheaper; at higher volumes the commercial API often remains cheaper because the GPU cost scales linearly with usage.",
+  },
+  {
+    q: "What if my reverse‑engineering volume spikes unexpectedly?",
+    a: "Include a buffer in your token estimate – for example add 20 % to the baseline count – and multiply the resulting figure by the per‑token price. This creates a safety margin that prevents surprise overruns. Additionally, set an API usage alert with your provider so you receive a notification when monthly tokens exceed a threshold you define, allowing you to pause or throttle jobs before the bill grows out of control.",
+  },
+  {
+    q: "Is it worth investing in more senior reviewers to reduce model errors?",
+    a: "Senior reviewers cost more per hour but can catch model hallucinations that would otherwise require re‑runs, saving token spend. Model errors typically add 10 % extra token usage per artefact for re‑analysis. If a senior reviewer reduces re‑runs by half, you save roughly 5 % of token cost. Compare the saved token expense ($0.0008 × 5 % × 1 000 000 ≈ $4) against the additional $30 / hour senior time. In most cases the labour cost outweighs the token savings, so the decision hinges on the criticality of accuracy rather than pure economics.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-20',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          How much does an LLM‑driven reverse‑engineering workflow really cost?
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          When you add a large language model to a reverse‑engineering workflow, the headline cost is not the model’s per‑token price alone. You must also factor in the compute required to embed code, the storage for intermediate artefacts, and any human‑in‑the‑loop time saved. By breaking the process into discrete steps and assigning a unit cost to each, you can see whether the automation saves money or merely shifts expense from developer hours to API calls.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-20 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>usage assumptions</h2>
+        <p>Start by estimating the volume of artefacts you will feed the model each month. A typical reverse‑engineering project might analyse 200 binaries, each averaging 5 MB, and generate 1 000 lines of commentary. If you split each binary into 10 k‑token chunks, the total token count becomes 200 × 5 × 1024 ÷ 4 ≈ 256 000 tokens. Multiply by the number of runs per month – for a weekly cadence that is four – to arrive at a baseline token load of roughly one million tokens. This figure is the foundation for all downstream cost calculations.</p>
+        <p>Next, decide how many human review cycles you will keep. If the model produces a draft report that a senior engineer validates, you might allocate 2 hours of review per artefact. With 200 artefacts, that is 400 hours of senior time per month. Convert that to a monetary figure using the engineer’s fully‑burdened hourly rate – for example $120 / hour – which adds $48 000 to the monthly budget. These two inputs – token volume and review time – capture the core of the workflow.</p>
+
+        <h2>model API fees</h2>
+        <p>Take the token count from the usage assumptions and apply the per‑1 000‑token price you enter for the chosen model. If you use a model priced at $0.0008 per 1 000 tokens, the API fee for one million tokens is $0.80. However, most providers charge a higher rate for context‑heavy prompts; a realistic figure might be $0.0012 per 1 000 tokens, raising the API bill to $1.20. Remember that each request also incurs a fixed request fee – for example $0.0005 per call – and with 2 000 calls per month that adds another $1.00.</p>
+        <p>If you need higher‑capacity embeddings for similarity search, the cost is separate. Embedding a 5 MB binary typically yields 1 500 tokens; at $0.0004 per 1 000 tokens that is $0.60 per artefact, or $120 for 200 artefacts. Adding this to the generation cost gives a total model‑API expense of roughly $2.80 per month in this hypothetical scenario. Adjust the rates to match the model you actually select, but the arithmetic stays the same.</p>
+      </div>
+
+      <LlmApiCostCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>compute and storage</h2>
+        <p>Running vector similarity searches on the embeddings requires a small compute cluster. A modest instance with 4 vCPU and 16 GB RAM costs about $0.10 per hour on a typical cloud provider. If you keep the instance running 24 hours a day, the monthly compute bill is $72. For lower utilisation – say 8 hours per day during analysis windows – the cost drops to $24. Choose the figure that reflects your operational pattern and include it in the total.</p>
+        <p>The embeddings themselves occupy storage. At roughly 1 KB per token, 1 500 tokens per artefact translate to 1.5 MB each. Storing 200 artefacts therefore uses about 300 MB. Cloud block storage priced at $0.02 per GB‑month makes this a negligible $0.01 expense, but if you retain historical data for a year, the annual cost climbs to $0.12. Even small storage fees should be captured for completeness.</p>
+
+        <h2>human‑in‑the‑loop savings</h2>
+        <p>The primary value proposition of LLM assistance is reduced manual effort. If a senior engineer would otherwise spend 4 hours per artefact reviewing raw disassembly, the model’s draft cuts that to 2 hours. That halves the engineer’s time from 800 hours to 400 hours per month, saving $38 400 in labour cost. Subtract the $48 000 senior‑time figure from the previous section and you see a net increase of $9 600, meaning the model does not yet pay for itself under these assumptions.</p>
+        <p>You can improve the economics by increasing automation. If you add a second, less‑senior reviewer at $60 / hour to handle the first pass, and only involve the senior engineer for final sign‑off, the total human cost drops to $24 000. In that case the $2.80 model expense plus $24 compute yields a total of $26.80, far below the $24 000 labour bill, delivering a clear cost advantage. The break‑even point depends on the proportion of work the model can reliably replace.</p>
+
+        <h2>total monthly cost</h2>
+        <p>Summing the line items gives a clear picture. Model API fees ($2.80), compute ($24 – $72), storage ($0.01), and senior engineer time ($48 000) total roughly $48 027. In the more automated scenario the human cost falls to $24 000, bringing the total to $24 027. Compare these totals against the baseline of $96 000 if the entire reverse‑engineering process were done manually at $120 / hour for 800 hours. The model‑augmented workflow can halve the budget, but only if you structure the review pipeline to minimise senior time.</p>
+        <p>Finally, factor in any fixed platform fees you may have – for example a $50 per month subscription for the vector database service – and any contingency buffer (5 % of the subtotal) for unexpected token spikes. Adding $50 and $1 200 (5 % of $24 000) yields a final budget of $25 250 in the optimized case. This number can be used directly in cash‑flow forecasts or to justify the expense to stakeholders.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Calculate total tokens per month based on artefact size and chunking strategy.</li>
+          <li>Apply the per‑1 000‑token rate you plan to use and add any fixed request fees.</li>
+          <li>Estimate compute hours for embedding search and multiply by the cloud hourly price.</li>
+          <li>Count senior‑engineer review hours and multiply by their fully‑burdened rate.</li>
+          <li>Add a 5 % contingency and any fixed platform subscriptions to arrive at the final budget.</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The LLM API cost calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://www.slowchronicle.com/posts/llm-assisted-reverse-engineering" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            LLM assisted reverse engineering
+          </a>
+          (Hacker News, 303 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>

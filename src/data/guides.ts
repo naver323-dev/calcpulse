@@ -86,6 +86,20 @@ export const guides: Guide[] = [
     keywords: ["payment processor reserve", "merchant account hold", "rolling reserve cash flow", "processing reserve cost"],
     topic: "Small-business finance",
   },
+  {
+    slug: "llm-reverse-engineering-budget",
+    title: "Estimating the cost of LLM‑assisted reverse engineering",
+    h1: "How much does an LLM‑driven reverse‑engineering workflow really cost?",
+    description:
+      "A step‑by‑step guide to calculate the monthly spend of using a language model for reverse engineering code or binaries.",
+    summary:
+      "Calculate the monthly budget for an LLM‑based reverse‑engineering pipeline using realistic usage inputs.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-20',
+    minutes: 4,
+    keywords: ["llm reverse engineering cost", "ai code analysis pricing", "machine learning budget calculator"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
