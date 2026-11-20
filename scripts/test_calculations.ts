@@ -8,7 +8,12 @@
  * change in the formula has to be justified here as well as in the page prose.
  */
 import assert from 'node:assert/strict';
-import { computeApiCost, computePaymentFees, computeSaasRoi } from '../src/lib/calculations.ts';
+import {
+  computeApiCost,
+  computePaymentFees,
+  computeSaasRoi,
+  computeSellerPlatforms,
+} from '../src/lib/calculations.ts';
 
 let passed = 0;
 const check = (name: string, fn: () => void) => {
@@ -291,6 +296,59 @@ check('negative and NaN inputs fall back to zero', () => {
   });
   close(result.grossVolume, 0, 'gross');
   close(result.netRevenue, 0, 'net');
+});
+
+console.log('computeSellerPlatforms');
+
+check('keep per sale, monthly net and best platform on a $20 product', () => {
+  // $20 sale, 100 sales. A: 12.9% + $0.80 -> fee 2.58 + 0.80 = 3.38, keep 16.62.
+  // B: 2.9% + $0.30 -> fee 0.58 + 0.30 = 0.88, keep 19.12.
+  const result = computeSellerPlatforms({
+    price: 20,
+    salesPerMonth: 100,
+    platforms: [
+      { id: 'a', percentFee: 0.129, fixedFee: 0.8 },
+      { id: 'b', percentFee: 0.029, fixedFee: 0.3 },
+    ],
+  });
+  close(result.results[0].feePerSale, 3.38, 'a fee', 1e-9);
+  close(result.results[0].keepPerSale, 16.62, 'a keep', 1e-9);
+  close(result.results[1].keepPerSale, 19.12, 'b keep', 1e-9);
+  close(result.results[1].keepRate, 0.956, 'b keep rate', 1e-9);
+  close(result.results[1].monthlyNet, 1912, 'b net', 1e-6);
+  close(result.results[0].monthlyFees, 338, 'a fees', 1e-6);
+  assert.equal(result.bestId, 'b');
+  close(result.spread, 1912 - 1662, 'spread', 1e-6);
+});
+
+check('fee is capped at the price so a tiny sale never goes negative', () => {
+  const result = computeSellerPlatforms({
+    price: 0.5,
+    salesPerMonth: 10,
+    platforms: [{ id: 'a', percentFee: 0.129, fixedFee: 0.8 }],
+  });
+  close(result.results[0].feePerSale, 0.5, 'fee', 1e-12);
+  close(result.results[0].keepPerSale, 0, 'keep', 1e-12);
+});
+
+check('nothing sold gives no best platform', () => {
+  const result = computeSellerPlatforms({
+    price: 20,
+    salesPerMonth: 0,
+    platforms: [{ id: 'a', percentFee: 0.05, fixedFee: 0 }],
+  });
+  assert.equal(result.bestId, null);
+  close(result.spread, 0, 'spread');
+});
+
+check('negative and NaN inputs fall back to zero for sellers', () => {
+  const result = computeSellerPlatforms({
+    price: Number.NaN,
+    salesPerMonth: -5,
+    platforms: [{ id: 'a', percentFee: Number.NaN, fixedFee: -1 }],
+  });
+  close(result.results[0].monthlyNet, 0, 'net');
+  assert.equal(result.bestId, null);
 });
 
 console.log(`\n${passed} checks passed`);
