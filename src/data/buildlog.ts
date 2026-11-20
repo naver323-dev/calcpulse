@@ -123,7 +123,7 @@ export const logEntries: LogEntry[] = [
       {
         label: 'Calculators live',
         value: '3',
-        note: 'Across 4 guides. Each runs entirely in the browser: no request per calculation, no account.',
+        note: 'Across the 5 guides live on the site (4 of them when this entry was written). Each runs entirely in the browser: no request per calculation, no account.',
       },
       {
         label: 'Paid listings',
@@ -149,6 +149,103 @@ export const logEntries: LogEntry[] = [
     tools: [
       { label: 'What an LLM feature costs per month', href: '/guides/ai-api-cost-calculator/' },
       { label: 'When a subscription pays for itself', href: '/guides/saas-break-even-calculator/' },
+      { label: 'What a payment processor keeps', href: '/guides/payment-fee-calculator/' },
+    ],
+  },
+  {
+    day: 2,
+    slug: 'day-002-four-rejections',
+    title: 'Day 2 — $0.00/mo, 6 readers — 4 rejected drafts before 1 guide',
+    description:
+      'A guide that took six workflow runs and 37 minutes, the gate behaviour that caused it, and the first real traffic reading on the site: six readers in seven days.',
+    summary:
+      'The editorial gate was right and the pipeline was wrong: it threw away a whole guide to repair one field. Also the first look at what the site actually receives.',
+    published: '2026-11-20',
+    updated: '2026-11-20',
+    minutes: 5,
+    constraint: [
+      'The budget is still $0.00 a month: no card on file with any host, model provider or analytics service, and no paid tier switched on. The second constraint is 30 to 60 minutes a day, and on 19 November that number got smaller in effect, not larger.',
+      'A second AI assistant took over the analysis, promotion and administrative side of the operation on 19 November; the code and the pipeline stayed with the first. CalcPulse\'s share of the day did not grow, so the publish path has to survive a day when nobody is standing over it.',
+      'That is what this entry is written under: free tiers that run out of quota, and a gate strict enough to reject a bad guide. Everything below is what that looked like on the first day it happened.',
+    ],
+    failures: [
+      {
+        title: 'Rejection #1–4 — the pipeline answered a rejection by starting over',
+        paragraphs: [
+          'On 19 November the guide workflow ran six times between 04:30 and 05:07 (KST). Four runs ended with the draft returned by the editorial checks, one failed outright, and the sixth published the payment-reserve guide — 37 minutes after the first attempt.',
+          'What the four rejections had in common is not in the logs beyond the failing checks. What is in the logs is the change that ended them: the pipeline used to regenerate the whole guide on a rejection, spending a model call to produce another draft that failed the same check. It now repairs the field the check names and keeps the rest.',
+          'The run that carried that change published on its next attempt. A gate that rejects is worth having; a pipeline that answers a rejection by re-rolling the dice is not.',
+        ],
+      },
+      {
+        title: 'The day before published nothing at all',
+        paragraphs: [
+          'On 18 November the same workflow produced zero guides: the first-tier free model returned 503, the second tier rejected its own JSON with a 400, the last tier returned 429, and the run gave up after seven attempts. A free tier is not a question of whether capacity exists but of how many attempts are left, so a pipeline that spends its attempts on full regenerations runs out before it finds a working one.',
+        ],
+      },
+      {
+        title: 'The rerun that was refused, on purpose',
+        paragraphs: [
+          'At 17:51 the workflow was triggered again and exited in seconds with "skip today: a guide is already published". That is the daily cap working. It is in this section because a cap that looks like a broken workflow is the kind of thing an operator turns off in a bad mood.',
+        ],
+      },
+    ],
+    numbersIntro:
+      'Every figure below comes from a command, a workflow run list or a dashboard; the note says which. The one figure that could not be split by channel is written that way rather than estimated.',
+    numbers: [
+      {
+        label: 'Infrastructure cost',
+        value: '$0.00 / month',
+        note: 'Static host free tier, workflow runs inside the free allowance, no paid API tier.',
+      },
+      {
+        label: 'Runs to publish one guide',
+        value: '6',
+        note: 'Workflow run list for 19 Nov, 04:30–05:07 KST: four editorial rejections, one hard failure, one publish.',
+      },
+      {
+        label: 'First attempt to publish',
+        value: '37 minutes',
+        note: 'First and last run timestamps on 19 Nov.',
+      },
+      {
+        label: 'Guides live',
+        value: '5',
+        note: 'Site guides listing after the 19 Nov publish; it was 4 on 18 Nov.',
+      },
+      {
+        label: 'Automated checks',
+        value: `${automatedChecks} / ${automatedChecks}`,
+        note: '15 arithmetic, 4 DOM-wiring, 27 pipeline, 11 content-queue. The count shown on the log index; no check was added this entry.',
+      },
+      {
+        label: 'Active users, last 7 days',
+        value: '6',
+        note: 'Analytics, 13–19 Nov: 6 active users, 36 events, 11 pageviews. At this volume the figure is not a readership.',
+      },
+      {
+        label: 'Sessions from search',
+        value: 'not split',
+        note: 'The seven-day report gives active users and pageviews only; the channel breakdown was read on a sibling property (100% Direct, mostly overseas).',
+      },
+      {
+        label: 'Paid listings',
+        value: '2 listings, 0 sales',
+        note: 'A $14 bundle and a $9 CSV pack on a marketplace checkout; no sale notification received.',
+      },
+      {
+        label: 'Paid APIs, cards on file',
+        value: '0',
+        note: 'The model tiers in use are quota-based free tiers; nothing to bill.',
+      },
+    ],
+    nextTest: [
+      'Two tests, and the second only runs if the first one fails. The first is the repair path under the condition that broke it: the next guide published on a day when the first-tier free model is out of quota. Success is two attempts or fewer per published guide, counted in the workflow run list rather than judged.',
+      'The second is whether a log entry is read at all. The log fires four events and no more, so this is a subtraction: pageviews on the guide this entry links to, against log_view for this page, over the seven days after publication. If the log\'s share stays at zero while the guides get visitors, the log is for the search index rather than for readers, and the next entries get shorter.',
+      'Nothing here is a projection. The site is still at $0.00 a month and zero sales, and writes that down every time.',
+    ],
+    tools: [
+      { label: 'The cash cost of processor reserves', href: '/guides/payment-reserve-cashflow-cost/' },
       { label: 'What a payment processor keeps', href: '/guides/payment-fee-calculator/' },
     ],
   },
