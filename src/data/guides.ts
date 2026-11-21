@@ -114,6 +114,20 @@ export const guides: Guide[] = [
     keywords: ['gumroad fees calculator', 'gumroad vs payhip', 'ko-fi shop fees', 'digital product platform fees'],
     topic: 'Small-business finance',
   },
+  {
+    slug: "autonomous-agent-pr-cost",
+    title: "What automated coding agents cost per merged pull request",
+    h1: "The real cost of automated coding pipelines per merged pull request",
+    description:
+      "Calculate the true cost of autonomous coding agents by accounting for token loops, CI runner execution, review hours, and failed iterations.",
+    summary:
+      "Autonomous coding pipelines burn tokens and CI minutes on every iteration loop. Calculate the net cost per merged feature before replacing human tasks.",
+    calculator: "SaaS break-even and ROI calculator",
+    updated: '2026-11-21',
+    minutes: 5,
+    keywords: ["coding agent economics", "agentic pipeline token cost", "cost per merged pull request", "automated code generation budget"],
+    topic: "SaaS & tooling",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

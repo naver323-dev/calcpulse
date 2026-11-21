@@ -29,6 +29,16 @@
       "source_url": "https://www.slowchronicle.com/posts/llm-assisted-reverse-engineering",
       "model": "groq:openai/gpt-oss-120b",
       "published_at": "2026-11-20T08:38:50+00:00"
+    },
+    {
+      "date": "2026-11-21",
+      "slug": "autonomous-agent-pr-cost",
+      "title": "What automated coding agents cost per merged pull request",
+      "family": "SaaS & tooling",
+      "source": "Hacker News",
+      "source_url": "https://news.ycombinator.com/item?id=50548660",
+      "model": "groq:openai/gpt-oss-120b",
+      "published_at": "2026-11-21T08:23:22+00:00"
     }
   ],
   "skips": [],
@@ -49,6 +59,12 @@
       "date": "2026-11-20",
       "mode": "generate",
       "slug": "llm-reverse-engineering-budget",
+      "model": "groq:openai/gpt-oss-120b"
+    },
+    {
+      "date": "2026-11-21",
+      "mode": "generate",
+      "slug": "autonomous-agent-pr-cost",
       "model": "groq:openai/gpt-oss-120b"
     }
   ]
