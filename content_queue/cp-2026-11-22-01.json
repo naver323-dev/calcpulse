@@ -1,0 +1,105 @@
+{
+  "schema": "content-queue/1",
+  "id": "cp-2026-11-22-01",
+  "created_at": "2026-11-21T22:20:00+09:00",
+  "batch": "20261121-2200",
+  "publish_after": "2026-11-22",
+  "expires_at": null,
+  "review": {
+    "gemini": "approved 2026-11-21 (arithmetic and source checked)",
+    "grok": "pending: batch checkpoint review unavailable this run",
+    "pickle": "generate_guide.py --queue-validate pass"
+  },
+  "payload": {
+    "topic": {
+      "family": "AI cost",
+      "source": "Gemini Developer API pricing",
+      "source_title": "Gemini Developer API pricing",
+      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "points": 0
+    },
+    "draft": {
+      "slug": "ai-summarizer-cost-per-document",
+      "title": "What an AI Summarizer Costs per 1,000 Documents",
+      "h1": "What an AI summarizer really costs per thousand documents",
+      "description": "Build the monthly bill for an AI summarizer from document length, summary length, retries and cache hits, then read the cost per finished summary.",
+      "summary": "Turns average document tokens, summary length, retry rate and prompt cache hit share into a monthly API bill and a per-document unit cost you can compare with a review hour.",
+      "keywords": [
+        "ai summarizer cost",
+        "document summarization api cost",
+        "token cost per document",
+        "summarization unit economics"
+      ],
+      "lede": "The bill for an AI summarizer is mostly input. A ten-page document arrives as several thousand tokens of prompt and leaves as a few hundred tokens of summary, so the cost per document is set by how much you send, how often you send it twice, and how much of the repeated instruction a cache can serve.",
+      "sections": [
+        {
+          "heading": "The four inputs that decide the bill",
+          "paragraphs": [
+            "Four numbers produce the monthly figure: average input tokens per document, average output tokens per summary, the retry rate, and the share of input served from a prompt cache at a discount. Everything else is presentation. If you cannot state those four, any per-document estimate you publish is a guess wearing a decimal point.",
+            "Measure the first two from real documents rather than from a sample of clean ones. Invoices, scanned contracts and support threads differ in length by an order of magnitude, and an average taken from your three nicest examples will understate the monthly bill by the amount of the outliers you forgot. Pull a week of production text and count characters, then divide by four to approximate tokens before you spend money on a tokenizer."
+          ]
+        },
+        {
+          "heading": "Why the input side dominates",
+          "paragraphs": [
+            "Roughly, one thousand words of English is about thirteen hundred tokens. A ten-page document of five thousand words therefore costs about six and a half thousand input tokens, while a sensible two-hundred-word summary costs about two hundred and sixty output tokens. Even when the output rate is three or four times the input rate, the input side stays the larger line, because the ratio of tokens is around twenty-five to one.",
+            "That has a practical consequence: the cheapest improvement is almost never a better model. It is sending less. Strip navigation, repeated headers, legal boilerplate and signature blocks before the prompt, and the bill falls in proportion to the text you removed without touching quality. Summaries of documents where the substance is a table and a paragraph rarely need the full text."
+          ]
+        },
+        {
+          "heading": "Retries are a multiplier, not a rounding error",
+          "paragraphs": [
+            "Every request that fails on a timeout, a malformed reply or a rate limit and is then repeated is billed twice for one finished summary. A retry rate of one in ten adds ten percent to the invoice and nothing to the output. Log the retry count separately from the request count, because a dashboard that shows only successful summaries will always look cheaper than the invoice.",
+            "Long documents add a second multiplier. When a text exceeds the context you are willing to pay for, it is split into chunks, summarized one by one and then reduced into a single summary. Each chunk carries the instruction again, so a four-chunk document pays for the instruction four times and for the reduction pass a fifth. That is the honest cost of the map and reduce pattern, and it should be in the estimate before the first invoice arrives."
+          ]
+        },
+        {
+          "heading": "A worked figure for one thousand documents",
+          "paragraphs": [
+            "Take a hypothetical month of one thousand documents, each six and a half thousand input tokens and two hundred and sixty output tokens, an eight percent retry rate and forty percent of input served from a cache billed at half the normal rate. Input volume is 7.02 million tokens; after the cache discount the effective billed volume is about 5.62 million. At a hypothetical two dollars per million input tokens that is 11.23 dollars, and at eight dollars per million output tokens the 281 thousand output tokens cost 2.25 dollars. The month lands near 13.50 dollars, or about one and a third cents per finished summary.",
+            "Change one assumption and watch it move. Drop the cache and the month goes to about 16.30 dollars. Raise the retry rate to twenty percent while keeping the cache, and it lands near 15 dollars. Send the full fifty-page vendor contracts instead of ten-page ones and the input line multiplies by five while the output line barely moves, which is the shape of every summarizer bill: a large, boring, entirely controllable input cost."
+          ]
+        },
+        {
+          "heading": "Where the per-document cost stops mattering",
+          "paragraphs": [
+            "One and a third cents per document is not a budget line, it is a rounding error, and that is the useful finding. Below a few cents a document, the decision is not about the API at all: it is about whether the summary is good enough that a person reads it instead of the source. A summary that is read saves minutes; one that is skimmed and then ignored has cost money twice.",
+            "The comparison that matters is against the human minutes displaced. If a reviewer earning a loaded forty dollars an hour spends four minutes opening a document to decide whether it matters, that is about 2.67 dollars per document. A summarizer at one cent buys you the chance to skip most of those openings, and the implementation cost, not the token cost, is what decides whether the project pays."
+          ]
+        },
+        {
+          "heading": "What to instrument in the first month",
+          "paragraphs": [
+            "Log input tokens, output tokens, retry attempts and cache hits per request, and aggregate them weekly into cost per finished summary. That one figure is comparable across models, prompt versions and document types, and it survives a vendor price change because it is rebuilt from your own traffic. Track the median and the ninety-fifth percentile rather than the mean, because a handful of enormous documents usually carries most of the bill.",
+            "Review the figure before you tune the prompt again. Teams routinely spend a week chasing summary quality while the cost sits in a retry loop or a chunking rule that fires on documents that would have fitted in one pass. The instrumentation tells you which one you are actually paying for, and it is the only part of this that has to be built before the first month ends."
+          ]
+        }
+      ],
+      "checklist": [
+        "Log input and output tokens for every request before tuning anything else",
+        "Keep the instruction block separate from the document so a cache can serve it",
+        "Count retries and failed extractions, because each one bills a second request",
+        "Cap document length at the point where another chunk costs more than it adds",
+        "Divide the monthly invoice by finished summaries, not by API calls"
+      ],
+      "faq": [
+        {
+          "q": "How many tokens is a ten-page document?",
+          "a": "About six and a half thousand for five thousand words of ordinary English, using the rough ratio of thirteen hundred tokens per thousand words. Tables, code and long reference numbers push the count higher, and scanned text that has passed through optical recognition can add noise that inflates both tokens and retries. Count a sample from your own documents before you trust any average."
+        },
+        {
+          "q": "Does prompt caching change the arithmetic much?",
+          "a": "It changes the input line, which is the larger one. If the instruction block is identical across requests and a provider bills cached input at a lower rate, forty percent cache coverage on a six and a half thousand token prompt is worth roughly one and a half dollars per thousand documents at a hypothetical two dollars per million input tokens. The saving grows with repetition, so it rewards a stable prompt rather than a clever one."
+        },
+        {
+          "q": "Is a cheaper model always the lower bill?",
+          "a": "No. A cheaper model that needs two attempts, or that ignores the length instruction and writes four hundred words instead of two hundred, can cost more per finished summary than a pricier one that gets it right first time. Measure cost per accepted summary rather than rate per token, and include the retries and the human corrections before you declare a winner."
+        },
+        {
+          "q": "Should a long document be summarized in one pass or in chunks?",
+          "a": "One pass whenever it fits, because chunking repeats the instruction for every chunk and adds a reduction pass on top. Chunk only when the text exceeds the context you are willing to pay for, and then reduce in one step rather than in a tree, unless the document is long enough that a single reduction prompt would itself exceed the limit."
+        }
+      ]
+    }
+  }
+}

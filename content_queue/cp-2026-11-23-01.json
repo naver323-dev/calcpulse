@@ -1,0 +1,105 @@
+{
+  "schema": "content-queue/1",
+  "id": "cp-2026-11-23-01",
+  "created_at": "2026-11-21T22:20:00+09:00",
+  "batch": "20261121-2200",
+  "publish_after": "2026-11-23",
+  "expires_at": null,
+  "review": {
+    "gemini": "approved 2026-11-21 (arithmetic and source checked)",
+    "grok": "pending: batch checkpoint review unavailable this run",
+    "pickle": "generate_guide.py --queue-validate pass"
+  },
+  "payload": {
+    "topic": {
+      "family": "SaaS & tooling",
+      "source": "ClickUp pricing",
+      "source_title": "ClickUp pricing and plans",
+      "source_url": "https://clickup.com/pricing",
+      "points": 0
+    },
+    "draft": {
+      "slug": "annual-vs-monthly-tool-cost",
+      "title": "Annual or Monthly: What Prepaying a Tool Saves",
+      "h1": "What prepaying a year of a tool actually saves you",
+      "description": "Compare an annual and a monthly seat price using the discount, the cash you tie up and the seats you will drop before the year ends.",
+      "summary": "Turns a monthly list price, an annual discount and a seat count into the real saving from prepaying, after the cash cost and the chance that seats shrink during the term.",
+      "keywords": [
+        "annual vs monthly pricing",
+        "saas annual discount",
+        "prepay software seats",
+        "software subscription cash flow"
+      ],
+      "lede": "An annual discount is quoted as a percentage and paid in cash twelve months early. The two numbers are not the same trade, and the arithmetic that compares them has three lines: the discount, the cost of the cash, and the seats you will not need by month nine.",
+      "sections": [
+        {
+          "heading": "The discount is quoted per seat, not per year",
+          "paragraphs": [
+            "Per-seat tools advertise a monthly rate and an annual rate, and the gap between them is the discount: a workspace quoted at seventeen dollars a user a month billed yearly against twenty-five billed monthly is a thirty-two percent discount, while nine against twelve is twenty-five percent. Both figures are per user, so the saving scales with seats and the risk of guessing seats wrong scales with them too.",
+            "Read the vendor page for which figure it is leading with. Pages that show a yearly rate under a monthly toggle are showing you the annual figure, and the monthly figure is usually in the same table a column to the right. Quoting the annual number in a budget that will be paid monthly understates the bill by a quarter to a third, which is the most common error in a small software budget."
+          ]
+        },
+        {
+          "heading": "What prepaying costs you in cash",
+          "paragraphs": [
+            "Money paid in January is money not available in June. If the business holds a cash buffer and earns nothing on it, the cost of prepaying is only the flexibility you gave up. If the business borrows, or leaves an invoice unpaid to fund the prepayment, the relevant comparison is the interest rate on that borrowing, and at eight percent a year a twelve-month prepayment costs roughly eight percent of its value on average.",
+            "Set the two against each other. A twenty-five percent discount beats an eight percent cost of capital easily, and a four percent discount does not. The line is worth writing down for the tools you use most, because the answer differs by vendor and the honest reason most teams pay monthly is not the arithmetic at all: it is that nobody wants to renegotiate a twelve-month commitment when the team changes."
+          ]
+        },
+        {
+          "heading": "The seats you will not need in month nine",
+          "paragraphs": [
+            "Annual seats are usually bought at the headcount you have on the day of purchase, and headcount moves. Contractors finish, a support team is consolidated, a product line is paused. Every seat that goes unused for the last quarter of the term is a seat you paid for and did not use, and that waste is subtracted from the discount before you compare it with the cost of the cash.",
+            "Estimate it rather than assume the best case. If twelve seats were bought and the realistic path is eleven by month six and ten by month ten, the annual term pays for roughly two and a half seat-years that nobody occupies. On a two hundred dollar annual seat that is five hundred dollars of waste against a total bill near two and a half thousand, which can swallow a large part of the discount the vendor advertised."
+          ]
+        },
+        {
+          "heading": "A worked comparison at twelve seats",
+          "paragraphs": [
+            "Take twelve seats at a hypothetical twenty-five dollars monthly, or seventeen dollars a month when billed yearly, so the annual commitment costs 2,448 dollars against 3,600 dollars paid monthly, a saving of 1,152 dollars or thirty-two percent. Then charge the cash: holding 2,448 dollars for an average of six months at a hypothetical eight percent costs about ninety-eight dollars. The saving is now about 1,054 dollars.",
+            "Now subtract the seats the team stops using. If two seats are idle for four months, that is eight seat-months at the annual rate, about 136 dollars, and the saving falls to about 918 dollars. It is still a good trade, and this is the useful finding: at a discount above thirty percent, the annual plan usually wins even with a pessimistic headcount and a real cost of capital. At ten percent it usually does not."
+          ]
+        },
+        {
+          "heading": "When monthly is the cheaper choice",
+          "paragraphs": [
+            "Pay monthly when the discount is under roughly fifteen percent, when the tool is inside a six-month evaluation, or when the team is reorganising and the seat count is a forecast rather than a fact. Paying a five percent premium for the right to stop is cheap insurance in those conditions, and the monthly rate is also what makes a trial honest: a tool that is not clearly worth its monthly price rarely becomes worth its annual one.",
+            "Pay monthly too when the vendor's annual plan bundles features you have not adopted. A higher tier sold at an annual rate looks like a discount against the tier below, but if the features were not being used at the monthly price, the comparison that matters is against not buying the tier at all."
+          ]
+        },
+        {
+          "heading": "The three lines to keep in the spreadsheet",
+          "paragraphs": [
+            "Write the monthly rate, the annual rate and the seat count you expect at the end of the term. The spreadsheet should produce two numbers: the discount in dollars and the waste from seats that will be idle. Anything that does not change either number, such as the vendor's percentage badge or the size of the first invoice, is decoration.",
+            "Review the list once a quarter. Annual commitments renew quietly, and the seat count that justified last year's purchase is rarely the one you have now. The exercise takes twenty minutes and it is the only part of software budgeting that consistently returns more than it costs."
+          ]
+        }
+      ],
+      "checklist": [
+        "Write down which rate the vendor page is showing before you budget",
+        "Price the cash you tie up at the rate your business actually borrows at",
+        "Forecast the seat count at the end of the term, not on the day of purchase",
+        "Subtract seats that will be idle from the discount before comparing",
+        "Review every annual commitment once a quarter, before it renews"
+      ],
+      "faq": [
+        {
+          "q": "How large does an annual discount need to be to win?",
+          "a": "Above roughly fifteen percent it usually beats the cost of the cash for a business that holds a buffer, and above thirty percent it usually survives a pessimistic headcount forecast as well. Below ten percent the flexibility is worth more than the saving, particularly for a team whose seat count is a forecast rather than a signed plan."
+        },
+        {
+          "q": "Can I switch from monthly to annual partway through a term?",
+          "a": "Most per-seat vendors will move a workspace onto annual billing at renewal or immediately with a prorated credit, but the terms differ and the credit is often calculated against the monthly rate already paid. Check the proration rule before you switch, because a workspace that upgrades mid-cycle can end up paying for the same month twice."
+        },
+        {
+          "q": "Do annual plans lock in the price against increases?",
+          "a": "Sometimes, and it is worth asking. A twelve-month term fixes the rate you pay for the term, which protects against an increase announced mid-year, but renewal is a new negotiation at whatever the list price has become. Get the renewal clause in writing if the increase protection is the reason you are prepaying."
+        },
+        {
+          "q": "What about tools bought per project rather than per seat?",
+          "a": "The same three lines apply, with projects replacing seats. Prepaying a block of credits is a bet that you will consume the block, so forecast consumption from the last two months rather than from the launch month, and check whether credits expire at the end of the term. Expiring credits that go unused are the project-based version of idle seats."
+        }
+      ]
+    }
+  }
+}
