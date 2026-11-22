@@ -128,6 +128,20 @@ export const guides: Guide[] = [
     keywords: ["coding agent economics", "agentic pipeline token cost", "cost per merged pull request", "automated code generation budget"],
     topic: "SaaS & tooling",
   },
+  {
+    slug: "ai-summarizer-cost-per-document",
+    title: "What an AI Summarizer Costs per 1,000 Documents",
+    h1: "What an AI summarizer really costs per thousand documents",
+    description:
+      "Build the monthly bill for an AI summarizer from document length, summary length, retries and cache hits, then read the cost per finished summary.",
+    summary:
+      "Turns average document tokens, summary length, retry rate and prompt cache hit share into a monthly API bill and a per-document unit cost you can compare with a review hour.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-22',
+    minutes: 4,
+    keywords: ["ai summarizer cost", "document summarization api cost", "token cost per document", "summarization unit economics"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

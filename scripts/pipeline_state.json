@@ -39,6 +39,16 @@
       "source_url": "https://news.ycombinator.com/item?id=50548660",
       "model": "groq:openai/gpt-oss-120b",
       "published_at": "2026-11-21T08:23:22+00:00"
+    },
+    {
+      "date": "2026-11-22",
+      "slug": "ai-summarizer-cost-per-document",
+      "title": "What an AI Summarizer Costs per 1,000 Documents",
+      "family": "AI cost",
+      "source": "Gemini Developer API pricing",
+      "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+      "model": "queue:cp-2026-11-22-01",
+      "published_at": "2026-11-22T08:03:51+00:00"
     }
   ],
   "skips": [],
@@ -66,6 +76,12 @@
       "mode": "generate",
       "slug": "autonomous-agent-pr-cost",
       "model": "groq:openai/gpt-oss-120b"
+    },
+    {
+      "date": "2026-11-22",
+      "mode": "generate",
+      "slug": "ai-summarizer-cost-per-document",
+      "model": "queue:cp-2026-11-22-01"
     }
   ]
 }
