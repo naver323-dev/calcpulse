@@ -142,6 +142,20 @@ export const guides: Guide[] = [
     keywords: ["ai summarizer cost", "document summarization api cost", "token cost per document", "summarization unit economics"],
     topic: "AI cost",
   },
+  {
+    slug: "annual-vs-monthly-tool-cost",
+    title: "Annual or Monthly: What Prepaying a Tool Saves",
+    h1: "What prepaying a year of a tool actually saves you",
+    description:
+      "Compare an annual and a monthly seat price using the discount, the cash you tie up and the seats you will drop before the year ends.",
+    summary:
+      "Turns a monthly list price, an annual discount and a seat count into the real saving from prepaying, after the cash cost and the chance that seats shrink during the term.",
+    calculator: "SaaS break-even and ROI calculator",
+    updated: '2026-11-23',
+    minutes: 4,
+    keywords: ["annual vs monthly pricing", "saas annual discount", "prepay software seats", "software subscription cash flow"],
+    topic: "SaaS & tooling",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

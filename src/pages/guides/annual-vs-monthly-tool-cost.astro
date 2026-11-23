@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import SaasRoiCalculator from '../../components/SaasRoiCalculator.astro';
+
+const guide = guideBySlug('annual-vs-monthly-tool-cost');
+
+const faq = [
+  {
+    q: "How large does an annual discount need to be to win?",
+    a: "Above roughly fifteen percent it usually beats the cost of the cash for a business that holds a buffer, and above thirty percent it usually survives a pessimistic headcount forecast as well. Below ten percent the flexibility is worth more than the saving, particularly for a team whose seat count is a forecast rather than a signed plan.",
+  },
+  {
+    q: "Can I switch from monthly to annual partway through a term?",
+    a: "Most per-seat vendors will move a workspace onto annual billing at renewal or immediately with a prorated credit, but the terms differ and the credit is often calculated against the monthly rate already paid. Check the proration rule before you switch, because a workspace that upgrades mid-cycle can end up paying for the same month twice.",
+  },
+  {
+    q: "Do annual plans lock in the price against increases?",
+    a: "Sometimes, and it is worth asking. A twelve-month term fixes the rate you pay for the term, which protects against an increase announced mid-year, but renewal is a new negotiation at whatever the list price has become. Get the renewal clause in writing if the increase protection is the reason you are prepaying.",
+  },
+  {
+    q: "What about tools bought per project rather than per seat?",
+    a: "The same three lines apply, with projects replacing seats. Prepaying a block of credits is a bet that you will consume the block, so forecast consumption from the last two months rather than from the launch month, and check whether credits expire at the end of the term. Expiring credits that go unused are the project-based version of idle seats.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-23',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      SaaS &amp; tooling
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">SaaS &amp; tooling</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          What prepaying a year of a tool actually saves you
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          An annual discount is quoted as a percentage and paid in cash twelve months early. The two numbers are not the same trade, and the arithmetic that compares them has three lines: the discount, the cost of the cash, and the seats you will not need by month nine.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-23 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The discount is quoted per seat, not per year</h2>
+        <p>Per-seat tools advertise a monthly rate and an annual rate, and the gap between them is the discount: a workspace quoted at seventeen dollars a user a month billed yearly against twenty-five billed monthly is a thirty-two percent discount, while nine against twelve is twenty-five percent. Both figures are per user, so the saving scales with seats and the risk of guessing seats wrong scales with them too.</p>
+        <p>Read the vendor page for which figure it is leading with. Pages that show a yearly rate under a monthly toggle are showing you the annual figure, and the monthly figure is usually in the same table a column to the right. Quoting the annual number in a budget that will be paid monthly understates the bill by a quarter to a third, which is the most common error in a small software budget.</p>
+
+        <h2>What prepaying costs you in cash</h2>
+        <p>Money paid in January is money not available in June. If the business holds a cash buffer and earns nothing on it, the cost of prepaying is only the flexibility you gave up. If the business borrows, or leaves an invoice unpaid to fund the prepayment, the relevant comparison is the interest rate on that borrowing, and at eight percent a year a twelve-month prepayment costs roughly eight percent of its value on average.</p>
+        <p>Set the two against each other. A twenty-five percent discount beats an eight percent cost of capital easily, and a four percent discount does not. The line is worth writing down for the tools you use most, because the answer differs by vendor and the honest reason most teams pay monthly is not the arithmetic at all: it is that nobody wants to renegotiate a twelve-month commitment when the team changes.</p>
+      </div>
+
+      <SaasRoiCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The seats you will not need in month nine</h2>
+        <p>Annual seats are usually bought at the headcount you have on the day of purchase, and headcount moves. Contractors finish, a support team is consolidated, a product line is paused. Every seat that goes unused for the last quarter of the term is a seat you paid for and did not use, and that waste is subtracted from the discount before you compare it with the cost of the cash.</p>
+        <p>Estimate it rather than assume the best case. If twelve seats were bought and the realistic path is eleven by month six and ten by month ten, the annual term pays for roughly two and a half seat-years that nobody occupies. On a two hundred dollar annual seat that is five hundred dollars of waste against a total bill near two and a half thousand, which can swallow a large part of the discount the vendor advertised.</p>
+
+        <h2>A worked comparison at twelve seats</h2>
+        <p>Take twelve seats at a hypothetical twenty-five dollars monthly, or seventeen dollars a month when billed yearly, so the annual commitment costs 2,448 dollars against 3,600 dollars paid monthly, a saving of 1,152 dollars or thirty-two percent. Then charge the cash: holding 2,448 dollars for an average of six months at a hypothetical eight percent costs about ninety-eight dollars. The saving is now about 1,054 dollars.</p>
+        <p>Now subtract the seats the team stops using. If two seats are idle for four months, that is eight seat-months at the annual rate, about 136 dollars, and the saving falls to about 918 dollars. It is still a good trade, and this is the useful finding: at a discount above thirty percent, the annual plan usually wins even with a pessimistic headcount and a real cost of capital. At ten percent it usually does not.</p>
+
+        <h2>When monthly is the cheaper choice</h2>
+        <p>Pay monthly when the discount is under roughly fifteen percent, when the tool is inside a six-month evaluation, or when the team is reorganising and the seat count is a forecast rather than a fact. Paying a five percent premium for the right to stop is cheap insurance in those conditions, and the monthly rate is also what makes a trial honest: a tool that is not clearly worth its monthly price rarely becomes worth its annual one.</p>
+        <p>Pay monthly too when the vendor's annual plan bundles features you have not adopted. A higher tier sold at an annual rate looks like a discount against the tier below, but if the features were not being used at the monthly price, the comparison that matters is against not buying the tier at all.</p>
+
+        <h2>The three lines to keep in the spreadsheet</h2>
+        <p>Write the monthly rate, the annual rate and the seat count you expect at the end of the term. The spreadsheet should produce two numbers: the discount in dollars and the waste from seats that will be idle. Anything that does not change either number, such as the vendor's percentage badge or the size of the first invoice, is decoration.</p>
+        <p>Review the list once a quarter. Annual commitments renew quietly, and the seat count that justified last year's purchase is rarely the one you have now. The exercise takes twenty minutes and it is the only part of software budgeting that consistently returns more than it costs.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Write down which rate the vendor page is showing before you budget</li>
+          <li>Price the cash you tie up at the rate your business actually borrows at</li>
+          <li>Forecast the seat count at the end of the term, not on the day of purchase</li>
+          <li>Subtract seats that will be idle from the discount before comparing</li>
+          <li>Review every annual commitment once a quarter, before it renews</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The SaaS break-even and ROI calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/ai-api-cost-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">LLM API cost calculator</a><span class="text-ink-600"> — What your LLM feature actually costs per month</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://clickup.com/pricing" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            ClickUp pricing and plans
+          </a>
+          (ClickUp pricing, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>

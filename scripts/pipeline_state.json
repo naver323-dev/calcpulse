@@ -49,6 +49,16 @@
       "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
       "model": "queue:cp-2026-11-22-01",
       "published_at": "2026-11-22T08:03:51+00:00"
+    },
+    {
+      "date": "2026-11-23",
+      "slug": "annual-vs-monthly-tool-cost",
+      "title": "Annual or Monthly: What Prepaying a Tool Saves",
+      "family": "SaaS & tooling",
+      "source": "ClickUp pricing",
+      "source_url": "https://clickup.com/pricing",
+      "model": "queue:cp-2026-11-23-01",
+      "published_at": "2026-11-23T09:10:39+00:00"
     }
   ],
   "skips": [],
@@ -82,6 +92,12 @@
       "mode": "generate",
       "slug": "ai-summarizer-cost-per-document",
       "model": "queue:cp-2026-11-22-01"
+    },
+    {
+      "date": "2026-11-23",
+      "mode": "generate",
+      "slug": "annual-vs-monthly-tool-cost",
+      "model": "queue:cp-2026-11-23-01"
     }
   ]
 }
