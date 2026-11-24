@@ -59,6 +59,16 @@
       "source_url": "https://clickup.com/pricing",
       "model": "queue:cp-2026-11-23-01",
       "published_at": "2026-11-23T09:10:39+00:00"
+    },
+    {
+      "date": "2026-11-24",
+      "slug": "small-ticket-card-fee-break-even",
+      "title": "Small-Ticket Card Fees: Where a Lower Rate Costs More",
+      "family": "Small-business finance",
+      "source": "Stripe pricing",
+      "source_url": "https://stripe.com/pricing",
+      "model": "queue:cp-2026-11-24-01",
+      "published_at": "2026-11-24T11:00:29+00:00"
     }
   ],
   "skips": [],
@@ -98,6 +108,12 @@
       "mode": "generate",
       "slug": "annual-vs-monthly-tool-cost",
       "model": "queue:cp-2026-11-23-01"
+    },
+    {
+      "date": "2026-11-24",
+      "mode": "generate",
+      "slug": "small-ticket-card-fee-break-even",
+      "model": "queue:cp-2026-11-24-01"
     }
   ]
 }

@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import PaymentFeeCalculator from '../../components/PaymentFeeCalculator.astro';
+
+const guide = guideBySlug('small-ticket-card-fee-break-even');
+
+const faq = [
+  {
+    q: "How do I work out the effective rate I am paying?",
+    a: "Divide total fees for a month by net sales for the same month, after refunds. That figure blends the percentage, the fixed fees, the refunds and the disputes into one number, which is the only number comparable across processors. Compare it with the rate you were quoted and with the rate in the previous month to see what moved.",
+  },
+  {
+    q: "Does a higher monthly volume make the percentage matter more?",
+    a: "It makes both parts bigger in proportion, so it does not move the crossover. What changes with volume is negotiating power: processors quote custom pricing above a threshold, and that is the point at which asking for a better percentage or a lower fixed fee is realistic. The crossover itself depends only on the fee structure.",
+  },
+  {
+    q: "Why does a refund still cost me a processing fee?",
+    a: "Because the processor already moved the money and carried the risk of the original charge, and most agreements keep the fee or charge a reversal fee. The fixed part is the expensive part on small tickets, so a return rate of ten percent raises the effective per-sale cost by about ten percent of the fixed fee. Confirm the refund rule in writing before you compare quotes.",
+  },
+  {
+    q: "Is a flat-rate processor ever better for small tickets?",
+    a: "Yes, when the flat rate removes the fixed per-charge amount or sets it very low, and your average ticket is small enough that the crossover sits above it. The flat rate is usually higher as a percentage, so it loses on larger sales. Run both structures at your own average ticket rather than at the example on the pricing page.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-24',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      Small-business finance
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">Small-business finance</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          Where a lower percentage rate costs more on every sale
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          Two quotes can both be accurate and still leave you paying more, because a card fee has a percentage part and a fixed part and only one of them cares about the size of the sale. The crossover is a single number, and it is the number to find before you sign.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-24 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Two quotes and one crossover point</h2>
+        <p>A card quote is a percentage of the sale plus a fixed amount per charge. Total fee is the percentage times sales volume plus the fixed amount times the number of charges, which means the average ticket decides which quote is cheaper. Compare the percentage lines alone and you will pick the wrong processor whenever your average sale is small.</p>
+        <p>The crossover is where the two totals are equal for the same volume of sales. Below it the quote with the smaller fixed fee wins even if its percentage is higher, and above it the quote with the lower percentage wins. Because the crossover depends only on the four fee numbers, you can calculate it once and apply it to every month.</p>
+
+        <h2>Why fixed fees dominate small tickets</h2>
+        <p>A thirty-cent fixed fee on a five-dollar sale is six percent before the percentage part starts. That is why a coffee shop and a software company can pay the same advertised rate and face effective costs that differ by a factor of three. The fixed amount is a per-charge cost, and a small ticket spreads it over less money, so the effective rate on small sales always looks worse than the headline.</p>
+        <p>This is also why processors publish a headline rate and then describe the exceptions in a separate document. The headline is a legitimate number for the sale size they assume, and if your tickets are smaller than that assumption, the effective rate you pay will be higher than the one on the website, without anyone having misled you.</p>
+      </div>
+
+      <PaymentFeeCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The crossover arithmetic</h2>
+        <p>Take a hypothetical quote A at 2.9 percent plus thirty cents and a hypothetical quote B at 2.4 percent plus fifty cents. At a ten-dollar ticket, A charges 0.59 dollars and B charges 0.74, so A is cheaper by fifteen cents. At fifty dollars, A charges 1.75 and B charges 1.70, so B is cheaper by a nickel. The crossover sits where the two are equal, at about forty dollars, and it moves with the fee difference rather than with volume.</p>
+        <p>The formula is the fixed-fee difference divided by the percentage difference. Here fifty cents minus thirty cents is twenty cents, and 2.9 minus 2.4 percent is half a percent, so the crossover is twenty cents divided by 0.005, or forty dollars. Any ticket below forty dollars favours the quote with the smaller fixed fee, and any ticket above it favours the lower percentage. Monthly volume never enters the calculation.</p>
+
+        <h2>Refunds and disputes change the count</h2>
+        <p>Most processors keep the original processing fee when a charge is refunded, and many charge a separate fee when a customer disputes a transaction. Both effects land on the fixed part of the fee, so a business with a high return rate pays the per-charge cost twice on the same sale: once when it was taken and again when it was reversed, plus any dispute fee.</p>
+        <p>Put a return rate into the comparison before you decide. If one in ten sales comes back, the effective per-charge cost rises by about ten percent of the fixed fee per sale, and for a small-ticket business that can erase the advantage of the quote with the lower fixed amount. Ask each processor what happens to the fee on a refund and what a dispute costs, and write both numbers beside the quote.</p>
+
+        <h2>What to ask before you sign</h2>
+        <p>Ask for the percentage and the fixed amount separately, for card and for any other method you accept. Ask what the fee is on a refund, what a dispute costs, and whether there is a monthly platform fee that is not in the headline. Those four answers convert a marketing rate into a comparable structure, and without them the quotes are not really comparable.</p>
+        <p>Ask as well how the rate changes with volume, because large processors quote custom pricing above a threshold. If your volume is close to that threshold, the effective rate in year two will differ from year one, and a contract that locks a rate for twelve months is worth more than a slightly better headline that resets with a new card product.</p>
+
+        <h2>The number to monitor monthly</h2>
+        <p>Track fees divided by net sales, not the advertised percentage. That single figure absorbs the mix of tickets, refunds and disputes, and it is the number that tells you whether a change in pricing actually helped. If the effective rate rises while the headline rate has not changed, the cause is in the ticket mix or the return rate, and both are visible in your own data.</p>
+        <p>Review it against the crossover every quarter. An average ticket that drifts below the crossover is a signal to renegotiate or switch, and a processor whose effective rate creeps up is usually a processor whose fixed fees have been joined by a new line item. The arithmetic is small enough to keep in a spreadsheet and specific enough to argue with a salesperson.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Ask for the percentage and the fixed per-charge amount as separate numbers</li>
+          <li>Calculate the crossover as fixed-fee difference divided by percentage difference</li>
+          <li>Compare the quote at your average ticket, not at the rate card example</li>
+          <li>Add the refund and dispute fees to the per-charge cost before deciding</li>
+          <li>Track fees divided by net sales every month against the crossover</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The Payment fee calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/ai-api-cost-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">LLM API cost calculator</a><span class="text-ink-600"> — What your LLM feature actually costs per month</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://stripe.com/pricing" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Stripe pricing and fees
+          </a>
+          (Stripe pricing, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>

@@ -156,6 +156,20 @@ export const guides: Guide[] = [
     keywords: ["annual vs monthly pricing", "saas annual discount", "prepay software seats", "software subscription cash flow"],
     topic: "SaaS & tooling",
   },
+  {
+    slug: "small-ticket-card-fee-break-even",
+    title: "Small-Ticket Card Fees: Where a Lower Rate Costs More",
+    h1: "Where a lower percentage rate costs more on every sale",
+    description:
+      "Find the average ticket at which a higher percentage with a smaller fixed fee beats a lower percentage with a bigger one.",
+    summary:
+      "Sets two card processing quotes against each other and finds the average order value where the lower percentage with the higher fixed fee starts to cost more each month.",
+    calculator: "Payment fee calculator",
+    updated: '2026-11-24',
+    minutes: 4,
+    keywords: ["card processing fee comparison", "small ticket payment fees", "fixed fee versus percentage", "effective rate calculator"],
+    topic: "Small-business finance",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
