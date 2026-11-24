@@ -1,0 +1,107 @@
+{
+  "schema": "content-queue/1",
+  "id": "cp-2026-11-25-01",
+  "created_at": "2026-11-24T22:20:00+09:00",
+  "batch": "20261124-2200",
+  "publish_after": "2026-11-25",
+  "expires_at": null,
+  "review": {
+    "gemini": "pending: batch fact pass this run used provider documentation directly",
+    "grok": "pending: batch checkpoint review unavailable this run",
+    "pickle": "batch discount and 24 hour window read from the provider batch guide on 2026-11-24; arithmetic checked by hand"
+  },
+  "payload": {
+    "topic": {
+      "family": "AI cost",
+      "source": "OpenAI Batch API guide",
+      "source_title": "Batch API",
+      "source_url": "https://platform.openai.com/docs/guides/batch",
+      "points": 0
+    },
+    "draft": {
+      "slug": "batch-api-discount-break-even",
+      "title": "Batch API Discounts: When Half Price Beats Waiting",
+      "h1": "What a 50 percent batch discount is worth against a 24 hour wait",
+      "description": "Work out how much of your model traffic can wait a day, then price the 50 percent batch discount against the delay it buys.",
+      "summary": "Reads a monthly token bill as two prices for the same tokens, finds the share of calls that must move to batch before the discount covers the cost of a second path, and works one month end to end.",
+      "keywords": [
+        "batch api discount",
+        "llm cost per token",
+        "asynchronous inference cost",
+        "api bill calculator"
+      ],
+      "lede": "A batch discount is the rare cost cut that requires no negotiation, no new vendor and no change to the prompt: the same tokens are simply charged half as much in exchange for waiting up to a day. The question worth answering is what share of your traffic that trade fits, because the saving is proportional to the share and the engineering bill is not.",
+      "sections": [
+        {
+          "heading": "The same tokens at two different prices",
+          "paragraphs": [
+            "Batch pricing is a discount on the identical model call, not a cheaper model. You write the requests into a file, submit the file, and the provider runs them within a stated window, in exchange for a rate that is typically half of the synchronous one. The parameters inside each request are the same parameters you would send in a live call, so quality, tokenizer behaviour and output length do not change.",
+            "That makes the discount unusually clean to model. There is no quality risk to weigh, no migration of prompts, no retraining of a workflow. For each request the only new inputs are the discounted rate and a completion window, and the only new question is whether the caller could have waited. If the answer is yes, the saving is half the cost of that call, and it arrives on the next invoice with no further work."
+          ]
+        },
+        {
+          "heading": "Latency is the price you actually pay",
+          "paragraphs": [
+            "A 24 hour window does not mean every result takes a day. It means the deadline is a day, and results often arrive sooner, but a system built on batch has to be correct when they do not. Anything a person is waiting on cannot live there: a chat reply, a search result, an agent step that feeds the next step. Anything whose output is read by a person tomorrow can, which includes overnight classification, document extraction, weekly reports and background enrichment.",
+            "The useful way to read a workload is by who consumes the output. If a customer reads it inside the session, the call is synchronous by definition. If a dashboard, a queued job or a colleague reads it after the fact, the call is a candidate. Most products contain both kinds, and the analysis is the classification rather than the discount arithmetic, because the classification is what decides the share."
+          ]
+        },
+        {
+          "heading": "Pricing the share that can wait",
+          "paragraphs": [
+            "Write the monthly bill as one number and the latency tolerant share as a fraction of it. If a fraction f of the traffic moves to a rate of half, the new bill is the old bill multiplied by one minus half of f. A share of 20 percent saves 10 percent of the bill, half saves 25, and 80 percent saves 40. The curve is linear, so the first honest estimate is usually close enough to decide with.",
+            "The estimate has to come from counts rather than intuition. Log the endpoints you call and the reason for each call for a week, then count the calls whose result nobody would have noticed arriving eight hours later. Teams routinely find that the expensive half of their traffic is summarisation, extraction and evaluation, which are exactly the calls nobody is staring at, while the cheap half is the interactive path they worried about."
+          ]
+        },
+        {
+          "heading": "What running two paths costs to build",
+          "paragraphs": [
+            "A batch path is a second queue with its own failure modes. Requests are written to a file, each needs a stable identifier that survives to the result, the submission has to be polled or watched, and the results have to be matched back to whatever waiting work produced them. Failed requests come back as failures inside a completed batch, so retries need their own budget and their own bookkeeping rather than the retry policy of a synchronous client.",
+            "That is a few days of engineering for a clean pipeline and more for one that has to be idempotent, auditable or resumable. Convert the estimate into a monthly figure: thirty hours of work is not thirty dollars, it is thirty hours that a team does not spend on something else. The discount has to clear that hurdle in a reasonable number of months before the trade makes sense, and for small bills it simply will not."
+          ]
+        },
+        {
+          "heading": "One month of numbers, end to end",
+          "paragraphs": [
+            "Take a service that spends 700 dollars a month at synchronous rates, with 200 million input tokens and 20 million output tokens. Assume a blended synchronous rate of 2.50 dollars per million input tokens and 10 dollars per million output, which puts the bill at 500 plus 200. Now assume the study finds 60 percent of traffic is latency tolerant, so the batch half is billed at half price.",
+            "The new bill is 700 multiplied by one minus half of 0.6, or 700 times 0.7, which is 490 dollars. The saving is 210 dollars a month, and the second path has to cost less than that per month to maintain, in engineering attention as well as infrastructure. At thirty hours of setup, the payback is about four months of pure saving, which is a defensible project rather than an obvious one."
+          ]
+        },
+        {
+          "heading": "The threshold to keep as a rule",
+          "paragraphs": [
+            "The rule that survives contact with real bills is this: batch pays when the monthly saving, half of the latency tolerant share of spend, is at least a few times the monthly cost of owning the second path. Below that line the discount is real and not worth the operational surface, and the same effort spent removing one redundant call from the interactive path saves more.",
+            "Keep the rule next to the ratio rather than the absolute figure, because the share is what changes as a product matures. A pipeline that starts fully interactive and grows an overnight reporting layer drifts from 5 percent to 50 percent latency tolerant without anybody deciding it, and the bill keeps the synchronous shape until someone looks. Review the share quarterly, and let the arithmetic decide whether the second path already exists for free."
+          ]
+        }
+      ],
+      "checklist": [
+        "Log call endpoints and the reason for each call for one week before estimating",
+        "Classify traffic by who reads the output: a person in session, or a job later",
+        "Multiply the bill by one minus half the latency tolerant share for the new total",
+        "Add the cost of a second queue, identifiers, polling, matching and retries to the comparison",
+        "Keep the project only if the monthly saving is a few times the cost of owning it"
+      ],
+      "faq": [
+        {
+          "q": "How much cheaper is a batch call than a live call?",
+          "a": "Typically half. Providers price batch processing at a discount on the identical request, and the usual published figure is 50 percent of the synchronous rate, in exchange for a completion window that can run to 24 hours. Because the parameters and the model are unchanged, the discount is a pure price cut on calls that can wait."
+        },
+        {
+          "q": "What kind of traffic should not move to batch?",
+          "a": "Anything a person reads inside the session: chat replies, search results, agent steps that feed the next call, and anything with a timeout measured in seconds. Also avoid batch where a partial failure has to be retried immediately, because failures inside a completed batch need their own retry budget rather than the client retry you already have."
+        },
+        {
+          "q": "What does it cost to add a batch path to an existing service?",
+          "a": "Expect a few days of engineering for a clean pipeline: writing request files, keeping a stable identifier per request, submitting, polling, matching results back to waiting work, and handling per request failures inside a completed batch. Idempotency and audit requirements add more. Convert those hours into a monthly figure and check it against the saving before starting."
+        },
+        {
+          "q": "Is batch still worth it at small volumes?",
+          "a": "Rarely. The saving is proportional to spend, so a bill of tens of dollars a month produces a saving measured in single dollars, which never covers the second path. The effort is better spent cutting redundant calls or shortening prompts on the interactive path. The break-even arrives when the discounted half of the bill is a few times the monthly cost of owning the pipeline."
+        }
+      ],
+      "minutes": 5,
+      "topic": "AI cost"
+    }
+  }
+}
