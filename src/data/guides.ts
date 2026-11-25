@@ -170,6 +170,20 @@ export const guides: Guide[] = [
     keywords: ["card processing fee comparison", "small ticket payment fees", "fixed fee versus percentage", "effective rate calculator"],
     topic: "Small-business finance",
   },
+  {
+    slug: "batch-api-discount-break-even",
+    title: "Batch API Discounts: When Half Price Beats Waiting",
+    h1: "What a 50 percent batch discount is worth against a 24 hour wait",
+    description:
+      "Work out how much of your model traffic can wait a day, then price the 50 percent batch discount against the delay it buys.",
+    summary:
+      "Reads a monthly token bill as two prices for the same tokens, finds the share of calls that must move to batch before the discount covers the cost of a second path, and works one month end to end.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-25',
+    minutes: 5,
+    keywords: ["batch api discount", "llm cost per token", "asynchronous inference cost", "api bill calculator"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

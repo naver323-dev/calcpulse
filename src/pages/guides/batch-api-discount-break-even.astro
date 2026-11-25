@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import LlmApiCostCalculator from '../../components/LlmApiCostCalculator.astro';
+
+const guide = guideBySlug('batch-api-discount-break-even');
+
+const faq = [
+  {
+    q: "How much cheaper is a batch call than a live call?",
+    a: "Typically half. Providers price batch processing at a discount on the identical request, and the usual published figure is 50 percent of the synchronous rate, in exchange for a completion window that can run to 24 hours. Because the parameters and the model are unchanged, the discount is a pure price cut on calls that can wait.",
+  },
+  {
+    q: "What kind of traffic should not move to batch?",
+    a: "Anything a person reads inside the session: chat replies, search results, agent steps that feed the next call, and anything with a timeout measured in seconds. Also avoid batch where a partial failure has to be retried immediately, because failures inside a completed batch need their own retry budget rather than the client retry you already have.",
+  },
+  {
+    q: "What does it cost to add a batch path to an existing service?",
+    a: "Expect a few days of engineering for a clean pipeline: writing request files, keeping a stable identifier per request, submitting, polling, matching results back to waiting work, and handling per request failures inside a completed batch. Idempotency and audit requirements add more. Convert those hours into a monthly figure and check it against the saving before starting.",
+  },
+  {
+    q: "Is batch still worth it at small volumes?",
+    a: "Rarely. The saving is proportional to spend, so a bill of tens of dollars a month produces a saving measured in single dollars, which never covers the second path. The effort is better spent cutting redundant calls or shortening prompts on the interactive path. The break-even arrives when the discounted half of the bill is a few times the monthly cost of owning the pipeline.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-25',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          What a 50 percent batch discount is worth against a 24 hour wait
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          A batch discount is the rare cost cut that requires no negotiation, no new vendor and no change to the prompt: the same tokens are simply charged half as much in exchange for waiting up to a day. The question worth answering is what share of your traffic that trade fits, because the saving is proportional to the share and the engineering bill is not.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-25 · 5 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The same tokens at two different prices</h2>
+        <p>Batch pricing is a discount on the identical model call, not a cheaper model. You write the requests into a file, submit the file, and the provider runs them within a stated window, in exchange for a rate that is typically half of the synchronous one. The parameters inside each request are the same parameters you would send in a live call, so quality, tokenizer behaviour and output length do not change.</p>
+        <p>That makes the discount unusually clean to model. There is no quality risk to weigh, no migration of prompts, no retraining of a workflow. For each request the only new inputs are the discounted rate and a completion window, and the only new question is whether the caller could have waited. If the answer is yes, the saving is half the cost of that call, and it arrives on the next invoice with no further work.</p>
+
+        <h2>Latency is the price you actually pay</h2>
+        <p>A 24 hour window does not mean every result takes a day. It means the deadline is a day, and results often arrive sooner, but a system built on batch has to be correct when they do not. Anything a person is waiting on cannot live there: a chat reply, a search result, an agent step that feeds the next step. Anything whose output is read by a person tomorrow can, which includes overnight classification, document extraction, weekly reports and background enrichment.</p>
+        <p>The useful way to read a workload is by who consumes the output. If a customer reads it inside the session, the call is synchronous by definition. If a dashboard, a queued job or a colleague reads it after the fact, the call is a candidate. Most products contain both kinds, and the analysis is the classification rather than the discount arithmetic, because the classification is what decides the share.</p>
+      </div>
+
+      <LlmApiCostCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Pricing the share that can wait</h2>
+        <p>Write the monthly bill as one number and the latency tolerant share as a fraction of it. If a fraction f of the traffic moves to a rate of half, the new bill is the old bill multiplied by one minus half of f. A share of 20 percent saves 10 percent of the bill, half saves 25, and 80 percent saves 40. The curve is linear, so the first honest estimate is usually close enough to decide with.</p>
+        <p>The estimate has to come from counts rather than intuition. Log the endpoints you call and the reason for each call for a week, then count the calls whose result nobody would have noticed arriving eight hours later. Teams routinely find that the expensive half of their traffic is summarisation, extraction and evaluation, which are exactly the calls nobody is staring at, while the cheap half is the interactive path they worried about.</p>
+
+        <h2>What running two paths costs to build</h2>
+        <p>A batch path is a second queue with its own failure modes. Requests are written to a file, each needs a stable identifier that survives to the result, the submission has to be polled or watched, and the results have to be matched back to whatever waiting work produced them. Failed requests come back as failures inside a completed batch, so retries need their own budget and their own bookkeeping rather than the retry policy of a synchronous client.</p>
+        <p>That is a few days of engineering for a clean pipeline and more for one that has to be idempotent, auditable or resumable. Convert the estimate into a monthly figure: thirty hours of work is not thirty dollars, it is thirty hours that a team does not spend on something else. The discount has to clear that hurdle in a reasonable number of months before the trade makes sense, and for small bills it simply will not.</p>
+
+        <h2>One month of numbers, end to end</h2>
+        <p>Take a service that spends 700 dollars a month at synchronous rates, with 200 million input tokens and 20 million output tokens. Assume a blended synchronous rate of 2.50 dollars per million input tokens and 10 dollars per million output, which puts the bill at 500 plus 200. Now assume the study finds 60 percent of traffic is latency tolerant, so the batch half is billed at half price.</p>
+        <p>The new bill is 700 multiplied by one minus half of 0.6, or 700 times 0.7, which is 490 dollars. The saving is 210 dollars a month, and the second path has to cost less than that per month to maintain, in engineering attention as well as infrastructure. At thirty hours of setup, the payback is about four months of pure saving, which is a defensible project rather than an obvious one.</p>
+
+        <h2>The threshold to keep as a rule</h2>
+        <p>The rule that survives contact with real bills is this: batch pays when the monthly saving, half of the latency tolerant share of spend, is at least a few times the monthly cost of owning the second path. Below that line the discount is real and not worth the operational surface, and the same effort spent removing one redundant call from the interactive path saves more.</p>
+        <p>Keep the rule next to the ratio rather than the absolute figure, because the share is what changes as a product matures. A pipeline that starts fully interactive and grows an overnight reporting layer drifts from 5 percent to 50 percent latency tolerant without anybody deciding it, and the bill keeps the synchronous shape until someone looks. Review the share quarterly, and let the arithmetic decide whether the second path already exists for free.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Log call endpoints and the reason for each call for one week before estimating</li>
+          <li>Classify traffic by who reads the output: a person in session, or a job later</li>
+          <li>Multiply the bill by one minus half the latency tolerant share for the new total</li>
+          <li>Add the cost of a second queue, identifiers, polling, matching and retries to the comparison</li>
+          <li>Keep the project only if the monthly saving is a few times the cost of owning it</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The LLM API cost calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://platform.openai.com/docs/guides/batch" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Batch API
+          </a>
+          (OpenAI Batch API guide, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>
