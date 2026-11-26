@@ -79,6 +79,16 @@
       "source_url": "https://platform.openai.com/docs/guides/batch",
       "model": "queue:cp-2026-11-25-01",
       "published_at": "2026-11-25T09:53:35+00:00"
+    },
+    {
+      "date": "2026-11-26",
+      "slug": "prompt-cache-hit-rate-value",
+      "title": "Prompt Caching: What a Hit Rate Is Actually Worth",
+      "family": "AI cost",
+      "source": "OpenAI prompt caching guide",
+      "source_url": "https://platform.openai.com/docs/guides/prompt-caching",
+      "model": "queue:cp-2026-11-26-01",
+      "published_at": "2026-11-26T09:36:49+00:00"
     }
   ],
   "skips": [],
@@ -130,6 +140,12 @@
       "mode": "generate",
       "slug": "batch-api-discount-break-even",
       "model": "queue:cp-2026-11-25-01"
+    },
+    {
+      "date": "2026-11-26",
+      "mode": "generate",
+      "slug": "prompt-cache-hit-rate-value",
+      "model": "queue:cp-2026-11-26-01"
     }
   ]
 }

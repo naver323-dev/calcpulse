@@ -184,6 +184,20 @@ export const guides: Guide[] = [
     keywords: ["batch api discount", "llm cost per token", "asynchronous inference cost", "api bill calculator"],
     topic: "AI cost",
   },
+  {
+    slug: "prompt-cache-hit-rate-value",
+    title: "Prompt Caching: What a Hit Rate Is Actually Worth",
+    h1: "The cache hit rate that decides whether prompt caching pays",
+    description:
+      "Cached input tokens cost a fraction of fresh ones, but only the repeated share is discounted, so the hit rate is the number to model first.",
+    summary:
+      "Splits an input bill into cache writes, cache reads and fresh tokens, finds the hit rate at which caching pays back its write premium, and works one month of a long shared prompt through the arithmetic.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-26',
+    minutes: 4,
+    keywords: ["prompt cache hit rate", "cached input token cost", "llm input cost model", "context reuse savings"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

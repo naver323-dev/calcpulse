@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import LlmApiCostCalculator from '../../components/LlmApiCostCalculator.astro';
+
+const guide = guideBySlug('prompt-cache-hit-rate-value');
+
+const faq = [
+  {
+    q: "What hit rate makes prompt caching worth setting up?",
+    a: "With a write premium of 1.25 and a read rate of a tenth of the normal input price, break-even is about 22 percent. Any share of requests above roughly one in five saves money on the shared prefix. The figure moves with the provider's multipliers, so recompute it whenever a pricing page changes rather than carrying the old number around.",
+  },
+  {
+    q: "Why does my cache keep missing on a prompt that looks identical?",
+    a: "Matching is a prefix match on the rendered request, so anything that changes early in the prompt invalidates everything after it. Common culprits are a timestamp or request identifier at the top, a tool declaration rebuilt in a different order, retrieved context inserted before the standing instructions, and a model or reasoning setting changed between deploys.",
+  },
+  {
+    q: "Is the cache write fee charged on top of normal input pricing?",
+    a: "No. Input tokens are billed at one of three rates, uncached, cache write or cache read, and the write rate replaces the normal rate for the tokens being stored rather than adding to it. That replacement is why the break-even hit rate is a simple expression of the three multipliers rather than a more complicated sum of fees.",
+  },
+  {
+    q: "Does a high hit rate always mean a lower bill?",
+    a: "Not by itself. A hit rate over a tiny prefix saves little, because the saving applies only to the tokens that repeat, and the repeated share of the prompt is what turns a percentage into money. A high hit rate on a prompt whose variable part dominates is mostly a statistical curiosity, while a moderate hit rate on a large shared prefix moves the bill.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-26',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          The cache hit rate that decides whether prompt caching pays
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          Prompt caching is sold as a discount on input tokens, and it is, but the discount applies only to the part of the prompt that repeats and only after the first request has paid to store it. The number that decides the saving is not the advertised rate, it is the share of eligible tokens that actually hit.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-26 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>One input token, three possible prices</h2>
+        <p>When caching is in play, an input token is billed in one of three ways. A token that is not part of a cacheable prefix is charged the normal input rate. A token in a prefix the provider has to store is charged a cache write rate. A token in a prefix that is already stored and matches exactly is charged a cache read rate, which is the discounted one.</p>
+        <p>The pricing pages state this plainly and the nuance is easy to miss: the write rate is not an extra fee added on top of normal input pricing, it replaces it for those tokens. So a request either writes its prefix, reads a stored prefix, or pays the uncached rate for the whole thing, and which of the three happens is decided by content and timing rather than by anything in your control at request time.</p>
+
+        <h2>Why a matched prefix is all or nothing</h2>
+        <p>Cache matching is a prefix match on the rendered request, which means the beginning has to be identical in every detail before the rest can be reused. A timestamp at the top of a system prompt, a tool list that reorders between deploys, a retrieved document inserted before the standing instructions, or a model or reasoning setting change can each invalidate the prefix while the prompt looks the same to a person reading it.</p>
+        <p>That fragility is why hit rates in practice sit below the rate the docs quote. The discount on a read can be large, in the region of ninety percent or more on some models, but the discount is earned only on the tokens that matched. A prompt that restructures itself every request pays the write rate over and over and gets the benefit of caching only in theory.</p>
+      </div>
+
+      <LlmApiCostCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The hit rate where caching starts to pay</h2>
+        <p>Put numbers on it with two multipliers: a read costs r of the normal input rate and a write costs w of it. Every request over an eligible prefix of size P either writes it, at w times P, or reads it, at r times P. With a hit rate h, the expected cost of that prefix is P times the quantity one minus h times w plus h times r.</p>
+        <p>Set that equal to the uncached cost of the same prefix, P, and solve. The break-even hit rate is w minus one, divided by w minus r. With a write premium of 1.25 and a read rate of 0.1, that is 0.25 divided by 1.15, or about 22 percent. Any hit rate above roughly one in five requests saves money even before the discount is large, and every point above it is close to pure margin on the shared prefix.</p>
+
+        <h2>The second variable is how much of the prompt repeats</h2>
+        <p>A high hit rate over a small prefix saves very little. The eligible share matters as much as the hit rate, and the two multiply. If a standing instruction of two thousand tokens sits in front of a retrieved document that changes every request, the shared part is small and the uncached part dominates. If the same document is queried repeatedly, the shared part is large and caching turns into the main lever on the bill.</p>
+        <p>So the modelling question is what fraction of input tokens sits in a prefix that stays stable for long enough to be reused. That fraction is determined by product design rather than by the provider: how instructions are ordered, whether conversation history is appended rather than rebuilt, whether tools are declared once, and how long a cache entry is allowed to live before it is read again.</p>
+
+        <h2>One month of a long shared prompt</h2>
+        <p>Take 120 million eligible input tokens a month, a normal input rate of 1 dollar per million tokens for arithmetic convenience, a read rate of 0.1 and a write premium of 1.25. With no caching the eligible part of the bill is 120 dollars. At a hit rate of 70 percent, each request either writes at 1.25 or reads at 0.1, so the average multiplier is 0.3 times 1.25 plus 0.7 times 0.1, which is 0.445.</p>
+        <p>The cached bill is 120 times 0.445, or 53.40 dollars, a saving of 66.60 a month on this line alone. At a hit rate of 30 percent the multiplier is 0.905 and the saving is 11.40, barely above noise. That spread is the argument for instrumenting rather than assuming: the same architecture produces a 55 percent saving or a 9 percent one depending on a number nobody watches while the prompt is being edited.</p>
+
+        <h2>What to measure every week</h2>
+        <p>The dashboard number to watch is the share of input tokens served as cache reads, not the share of requests that hit, because long prefixes dominate the bill and short ones dominate the request count. Read it beside the total input volume so a fallen hit rate is visible as either lost reuse or simply more varied traffic, which are different problems with different fixes.</p>
+        <p>Then find out why the misses happen, in order of frequency. The usual causes are a changing timestamp or identifier near the top, a rebuilt tool declaration, retrieved context placed ahead of the standing instructions, and traffic so sparse that entries expire between requests. Each fix is a small edit to prompt assembly, and together they move the hit rate more than any pricing decision available to you.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Split input tokens into cache reads, cache writes and uncached, and bill them at three rates</li>
+          <li>Compute the break-even hit rate as write premium minus one, over write premium minus read rate</li>
+          <li>Measure the eligible share of the prompt, because the hit rate only applies to that share</li>
+          <li>Watch the cache read share of input tokens weekly rather than the share of requests</li>
+          <li>Remove the top cause of misses: changing prefix, rebuilt tools, context above instructions</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The LLM API cost calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://platform.openai.com/docs/guides/prompt-caching" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Prompt caching
+          </a>
+          (OpenAI prompt caching guide, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>
