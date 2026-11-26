@@ -1,0 +1,102 @@
+{
+  "schema": "content-queue/1",
+  "id": "cp-2026-11-28-01",
+  "created_at": "2026-11-26T22:20:00+09:00",
+  "batch": "20261126-2200",
+  "publish_after": "2026-11-28",
+  "expires_at": null,
+  "review": {
+    "gemini": "pending: this batch read the source pages directly instead of a model pass",
+    "grok": "pending: checkpoint review unavailable in this run",
+    "pickle": "Stripe usage-based billing docs read 2026-11-26 (meters, credits, thresholds); break-even arithmetic checked by hand; generate_guide.py --queue-validate pass"
+  },
+  "payload": {
+    "topic": {
+      "family": "SaaS & tooling",
+      "source": "Stripe documentation",
+      "source_title": "Basic usage-based billing: charging by recorded usage, credits and thresholds",
+      "source_url": "https://docs.stripe.com/billing/subscriptions/usage-based",
+      "points": 0
+    },
+    "draft": {
+      "slug": "seat-vs-usage-pricing-breakeven",
+      "title": "Seat Pricing or Usage Pricing: Where the Bill Crosses",
+      "h1": "One division decides whether a seat or a meter earns more",
+      "description": "The cheaper model depends on one number: how much the average customer consumes against the seat price you would otherwise charge.",
+      "summary": "Seat pricing charges for access and usage pricing charges for consumption. The crossover is the seat price divided by the per-unit rate, and the share of customers above that line decides which model collects more.",
+      "keywords": [
+        "seat vs usage pricing",
+        "usage based billing model",
+        "saas pricing breakeven",
+        "per seat pricing math"
+      ],
+      "lede": "Every software company eventually argues about seats and meters, and the argument usually runs on intuition about fairness. The arithmetic is simpler than the argument: a seat price and a usage rate cross at one quantity, and the share of customers above that quantity decides which model collects more money from the same customer base.",
+      "sections": [
+        {
+          "heading": "The two models bill different things",
+          "paragraphs": [
+            "Seat pricing sells access. The customer pays for the number of people who can log in, and the amount they do inside the product does not change the invoice. Usage pricing sells consumption: the customer is charged for what was recorded, whether that is requests, documents, events or minutes, and payments are collected through meters that accumulate during the period.",
+            "The difference shows up in the tail. A seat price is predictable for both sides and punishes a customer who uses the product heavily without paying more. A usage rate is fair to the light customer and unpredictable for the buyer, which is why so many usage-based products add prepaid credits and usage thresholds to make the bill answerable before finance asks about it."
+          ]
+        },
+        {
+          "heading": "The crossover is one division",
+          "paragraphs": [
+            "Take a seat price of thirty dollars a month and a usage rate of twenty cents per thousand requests. The two produce the same invoice at one hundred fifty thousand requests, because thirty dollars divided by twenty cents per thousand is one hundred fifty thousand. Below that quantity the meter charges less than the seat; above it the meter charges more.",
+            "That single number reframes the decision. The question is not whether usage is fairer, it is what share of customers sit above one hundred fifty thousand requests. The median customer decides the story the pricing page tells, and the customers in the top decile decide the revenue."
+          ]
+        },
+        {
+          "heading": "Worked example: five hundred accounts",
+          "paragraphs": [
+            "Suppose the base is five hundred accounts, forty percent of them heavy at four hundred thousand requests a month and the rest light at twenty thousand. At twenty cents per thousand requests, heavy accounts pay eighty dollars and light accounts pay four. Total usage revenue is sixteen thousand dollars from the heavy group and one thousand two hundred from the light group.",
+            "Seat pricing at thirty dollars collects fifteen thousand dollars from the same base. Usage wins by two thousand two hundred, because the average account consumes thirty-four dollars forty of meter, above the seat price. Move the heavy share down to twenty percent and the meter collects nine thousand six hundred against fifteen thousand for seats, and the conclusion flips. The heavy share that makes the meter break even in this example is about thirty-four percent."
+          ]
+        },
+        {
+          "heading": "Why buyers push back on the meter",
+          "paragraphs": [
+            "A usage invoice moves with behaviour, so the buyer cannot approve a budget without an estimate, and the estimate depends on their own product's traffic. That is a real cost even when the average bill is lower than the seat price, because finance teams approve ceilings rather than formulas.",
+            "The usual answer is a hybrid: a platform fee that includes an allowance, plus an overage rate. A thirty-nine dollar fee with fifty thousand included requests and fifteen cents per thousand after that charges a heavy account ninety-one dollars fifty and a light account thirty-nine. It protects the revenue floor and caps the surprise, at the price of charging the lightest customers far more than their consumption.",
+            "There is also a sales cost that never appears in the model. A meter makes every renewal a negotiation about last quarter's traffic, while a seat price renews itself as long as the team stays the same size. Companies that sell to procurement-heavy buyers usually keep some seat component for exactly that reason: the invoice has to be explainable in one sentence to someone who was not in the demo."
+          ]
+        },
+        {
+          "heading": "What to measure before you switch",
+          "paragraphs": [
+            "Measure the distribution, not the average. Pull the median and the ninetieth percentile of usage per account, then multiply each by the rate you would charge and compare with the seat price. If the median falls below the seat price, seat pricing is protecting gross margin and a switch will lower revenue unless you raise the rate.",
+            "Then measure the cost to serve the heavy accounts. A meter that charges eighty dollars to a customer who costs sixty dollars in infrastructure is a better business than a seat that charges thirty dollars to the same customer, and no average hides that. Finally, check the support load: every invoice question about a meter is a conversation a seat price never starts.",
+            "One more test is worth running before any change: price the current base under both models for a full year, including the customers who would downgrade or leave. Usage pricing tends to look better on a spreadsheet and worse in a renewal conversation, and the gap between those two outcomes is the number the decision should rest on."
+          ]
+        }
+      ],
+      "checklist": [
+        "Compute the crossover quantity by dividing the seat price by the per-unit rate",
+        "Compare the median and ninetieth percentile of usage, not the average",
+        "Price infrastructure cost per heavy account before switching models",
+        "Add prepaid credits or usage thresholds so the buyer can approve a ceiling",
+        "Keep a platform fee if the lightest customers would otherwise pay almost nothing"
+      ],
+      "faq": [
+        {
+          "q": "How do I find the break-even point between a seat and a meter?",
+          "a": "Divide the monthly seat price by the price of one unit of usage. A thirty dollar seat and twenty cents per thousand requests cross at one hundred fifty thousand requests a month. Everything below that quantity is cheaper on the meter and everything above it is cheaper on the seat, for the customer and for your revenue in the same direction."
+        },
+        {
+          "q": "Does usage pricing always earn more than seat pricing?",
+          "a": "No. It earns more only when the average account consumes more than the seat price is worth. In the example on this page, five hundred accounts with forty percent heavy users produce nine thousand six hundred dollars on the meter and fifteen thousand on seats, so the meter only wins once roughly a third of the base is heavy."
+        },
+        {
+          "q": "What is a hybrid pricing model?",
+          "a": "A platform fee that includes an allowance of usage, with an overage rate above it. It gives the buyer a ceiling to approve and gives the seller a revenue floor, at the cost of overcharging the lightest customers. Most software companies land here after one round of complaints about a pure meter."
+        },
+        {
+          "q": "When should a company switch from seats to usage?",
+          "a": "When the median account consumes well above the seat price and the infrastructure cost scales with that consumption. If the median is below the seat price, a switch lowers revenue unless the rate rises, and the customers who benefit most are the light ones who were already profitable."
+        }
+      ],
+      "minutes": 6,
+      "topic": "SaaS & tooling"
+    }
+  }
+}

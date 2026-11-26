@@ -1,0 +1,102 @@
+{
+  "schema": "content-queue/1",
+  "id": "cp-2026-11-29-01",
+  "created_at": "2026-11-26T22:20:00+09:00",
+  "batch": "20261126-2200",
+  "publish_after": "2026-11-29",
+  "expires_at": null,
+  "review": {
+    "gemini": "pending: this batch read the source pages directly instead of a model pass",
+    "grok": "pending: checkpoint review unavailable in this run",
+    "pickle": "Stripe revenue recovery docs read 2026-11-26 (Smart Retries, automatic card updates, analytics); arithmetic checked by hand; generate_guide.py --queue-validate pass"
+  },
+  "payload": {
+    "topic": {
+      "family": "Small-business finance",
+      "source": "Stripe documentation",
+      "source_title": "Revenue recovery: Smart Retries, card updates and recovery analytics",
+      "source_url": "https://docs.stripe.com/billing/revenue-recovery",
+      "points": 0
+    },
+    "draft": {
+      "slug": "failed-payment-recovery-cost",
+      "title": "What a Failed Subscription Payment Really Costs",
+      "h1": "A declined card is a retry window, not one lost invoice",
+      "description": "A failed charge is a recovery rate, a retry window and a support conversation, and each of them can be priced per month.",
+      "summary": "Failed card charges look small because a single decline is small. Priced as a monthly rate with a recovery percentage, the unrecovered remainder and the support time become a line item worth fixing.",
+      "keywords": [
+        "failed payment cost",
+        "involuntary churn rate",
+        "dunning recovery cost",
+        "subscription payment retry"
+      ],
+      "lede": "A declined card is easy to dismiss as one customer's problem, because the amount is usually small and the customer usually fixes it. The cost is not the single decline. It is the share of declines that never recover, multiplied across every billing cycle, plus the support time each one creates.",
+      "sections": [
+        {
+          "heading": "What one decline costs across a base",
+          "paragraphs": [
+            "Take a subscription business with two hundred active customers at forty dollars a month, which is eight thousand dollars of recurring revenue. If three percent of monthly charges fail, that is two hundred forty dollars of invoices at risk every cycle. A recovery rate of sixty percent recovers one hundred forty-four dollars and leaves ninety-six dollars lost.",
+            "Ninety-six dollars a month is one thousand one hundred fifty-two dollars a year, which sounds survivable until the same customers are counted twice: the ones who leave are usually gone for good, so the loss is not the one month but every month that customer would have paid. A customer who has been on the plan for a year and leaves over a card is a year of revenue, not one invoice.",
+            "The number to watch over time is the recovery rate, not the failure rate. Failure rates move with the economy and the customer mix, while the recovery rate is what the billing setup controls. A business that tracks one number should track the share of failed charges that eventually collect, because a rate that drifts down by ten points is a silent price rise on every renewal."
+          ]
+        },
+        {
+          "heading": "The retry schedule is the biggest lever",
+          "paragraphs": [
+            "Most declines are temporary: an account short of funds on the charge date, a bank blocking a first charge from a new merchant, an expired card. Retrying the charge is the cheapest recovery there is, and the timing of the retries is what separates a good recovery rate from a poor one. Data-guided retries that pick a better day and hour outperform a fixed schedule of retries on the same dates.",
+            "The retry window matters as much as the retry count. Every retry has to fit inside the grace period the product gives before it downgrades access, and a business that cuts access on the first failure is choosing churn as a collections policy. Card-network rules decide how many attempts a merchant may make, so the schedule belongs in the billing system rather than in a spreadsheet."
+          ]
+        },
+        {
+          "heading": "Expired cards are a different problem",
+          "paragraphs": [
+            "An expired card is not a customer with no money, it is a customer with a new card number, and the card networks pass that new number to billing providers that ask for it. A provider that updates the stored card automatically turns a whole category of failure into a non-event, which is often the cheapest recovery available because it requires nothing from the customer.",
+            "The remaining failures are the ones that need a human: a card closed by the bank, a limit lowered, a business card replaced by a personal one. Those are recovered with a short email that says the payment failed and links to a page where the card can be replaced. One email is worth sending three times; a sequence of five is worth sending once and reading the analytics on.",
+            "The order of operations matters here. Update the stored card first, retry second, and email third, because each step removes a class of failure from the next one. A business that starts with the email spends support time asking customers to fix cards the network would have updated for free."
+          ]
+        },
+        {
+          "heading": "Worked example: what a recovery tool has to earn",
+          "paragraphs": [
+            "Return to the two hundred forty dollars of failed charges and compare a forty percent recovery rate with sixty-five. The difference is twenty-five points, which is sixty dollars a month, or seven hundred twenty dollars a year on the same base. That is the ceiling on what any recovery tool is worth before it starts paying for itself.",
+            "Turn it into a break-even test. If a dunning tool costs fifty dollars a month, it has to recover fifty dollars more than the current process, which on two hundred forty dollars of failures is twenty-one percentage points of recovery rate. A tool that adds ten points is losing money at this size. Run the same division on your own numbers before signing: the smaller the failure base, the more the tool has to improve the rate to justify its fee."
+          ]
+        },
+        {
+          "heading": "Support time and the annual plan trap",
+          "paragraphs": [
+            "Each failed payment produces at least one message from the customer and often a reply, so six failures a month at ten minutes each is an hour of support, which at a loaded cost of twenty-five dollars an hour is twenty-five dollars. Add that to the unrecovered revenue and the true cost of a three percent failure rate is closer to twice the invoice value.",
+            "The annual plan changes the arithmetic again. A monthly failure risks forty dollars; a failed annual renewal risks four hundred eighty, and it arrives all at once. Businesses that bill annually should treat their renewal window as the highest-value recovery period of the year, because one recovered renewal is worth twelve recovered monthly charges."
+          ]
+        }
+      ],
+      "checklist": [
+        "Count failed charges as a monthly rate rather than a yearly total",
+        "Multiply the failure rate by the recovery rate to find what is actually lost",
+        "Put the retry attempts inside the grace period your product already gives",
+        "Turn on automatic card updates before buying any dunning tool",
+        "Compare a recovery tool's fee with the recovery points it has to add"
+      ],
+      "faq": [
+        {
+          "q": "What counts as an involuntary churn rate?",
+          "a": "The share of customers who stop paying because a charge failed and was never recovered, rather than because they cancelled. On a base where three percent of charges fail and sixty percent of those recover, the involuntary churn is about one point two percent a month, which is small per cycle and large over a year."
+        },
+        {
+          "q": "How much does a failed payment cost a small business?",
+          "a": "The invoice that fails, the share of it that never recovers, the support time to chase it, and the future revenue from a customer who leaves. On two hundred customers at forty dollars with three percent failures and a sixty percent recovery rate, the direct loss is about ninety-six dollars a month before support time is counted."
+        },
+        {
+          "q": "Is a dunning tool worth the monthly fee?",
+          "a": "Only if it adds more recovery points than its fee represents. A fifty dollar tool on two hundred forty dollars of monthly failures has to lift the recovery rate by about twenty-one points to break even. Small bases rarely clear that bar, which is why retry timing and automatic card updates come first."
+        },
+        {
+          "q": "Why are annual renewals riskier than monthly ones?",
+          "a": "Because one failure puts a whole year of revenue at risk at once. A monthly plan that fails costs one month, while an annual plan that fails at renewal can cost twelve. The recovery effort per event is the same, so the return on that effort is twelve times higher on the annual base."
+        }
+      ],
+      "minutes": 6,
+      "topic": "Small-business finance"
+    }
+  }
+}
