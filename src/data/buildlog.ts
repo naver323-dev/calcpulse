@@ -249,6 +249,122 @@ export const logEntries: LogEntry[] = [
       { label: 'What a payment processor keeps', href: '/guides/payment-fee-calculator/' },
     ],
   },
+  {
+    day: 3,
+    slug: 'day-003-nine-slots-nobody-arrives',
+    title: 'Day 3 — 9 slots a day for four days, $0.00 — 570 visitors, 41 of them in Korea',
+    description:
+      'Four days of full publishing slots with zero revenue, a free model withdrawn mid-flight, and a traffic figure three times larger than the people behind it. An entry about discovery rather than distribution.',
+    summary:
+      'The publish path ran every day and the money did not move. A free model disappeared behind a 404, and the dashboard was counting datacenters as readers.',
+    published: '2026-11-27',
+    updated: '2026-11-27',
+    minutes: 6,
+    constraint: [
+      'The budget is still $0.00 a month: no card on file with any host, model provider or analytics service, and no paid tier switched on. The time constraint is unchanged at 30 to 60 minutes a day, and so is the editorial rule: a figure that was not measured is written as not measured.',
+      'This week added a second constraint. The publishing path proved it runs unattended — nine slots a day, four days running, every scheduled run green — and none of it produced a reader. Attention is the one input $0 cannot buy: with no ad spend, a visit has to come from a page search engines already index, or from somewhere a person chose to post a link.',
+      'So this entry records two problems that look identical on a dashboard: work not yet discovered, and work not yet started. They need different fixes, and calling both of them failure hid that for two weeks.',
+    ],
+    failures: [
+      {
+        title: 'A green run that published nothing',
+        paragraphs: [
+          'One daily run finished green with zero items published: 503 six times, 404 six times. The free model the pipeline preferred had been withdrawn for new accounts — "no longer available to new users" — and the response named a newer ID instead.',
+          'The fallback tier filled the slots, so the run history looks clean, and that is the part worth writing down: nothing failed loudly. The first-choice model was dead for hours while every run reported success, because a fallback that works is also a failure that hides. The withdrawn ID is still first in a default list in a sibling repository; removing it is pending, and until then the fallback is what keeps the slots full.',
+        ],
+      },
+      {
+        title: 'The dashboard was three times wrong on its first line',
+        paragraphs: [
+          'Cumulative traffic on the sibling game property read 570 users and 593 sessions since 29 October. The last seven days read 476 sessions, of which roughly 388 came from one datacenter range in the United States — an estimate, not a classification — and about 41 came from Korea.',
+          'Two windows, one headline: a 44-day total printed beside a seven-day bot analysis is how a dashboard produces growth out of nothing. The property also carries a second page, so its session count was never one site\u2019s audience. The log now quotes the window, separates the estimated bot share, and writes "not split" where no split exists.',
+        ],
+      },
+      {
+        title: 'Clicks were sent and never readable',
+        paragraphs: [
+          'Ten ad clicks from nine users arrived over 44 days with no way to say which service produced them. The code sent a provider value and a slot value with every click; neither was registered as a custom dimension, so all ten landed in one bucket.',
+          'Five dimensions are registered now, and clicks split by service from here. History is not retroactive: five of the earlier ten were matched against a partner dashboard and the rest stay unverified rather than guessed. The data was already leaving the browser; a missing schema was the only reason it could not be read.',
+        ],
+      },
+      {
+        title: 'The first warning came from compliance, not a bug',
+        paragraphs: [
+          'A post from earlier in the month carried a paid link without the disclosure line near the top of the body. A first warning arrived with a response deadline, the post came down, and the position was fixed.',
+          'Ten days of zero revenue did not pause that clock. The rule is plain: a link that can earn goes in with the disclosure at the top, before the first paragraph, every time.',
+        ],
+      },
+    ],
+    numbersIntro:
+      'Every figure comes from a command, a dashboard export or a partner report, and the note says which. A figure that could not be split is written as not split rather than filled in.',
+    numbers: [
+      {
+        label: 'Infrastructure cost',
+        value: '$0.00 / month',
+        note: 'Static host free tier, workflow runs inside the free allowance, no paid model tier.',
+      },
+      {
+        label: 'Automated checks',
+        value: '71 / 71',
+        note: '19 arithmetic, 5 DOM-wiring, 36 pipeline and 11 content-queue checks, as printed by npm test on 27 Nov. The badge above and the Day 1 entry still read 57, which was the count when that entry shipped; reconciling the two is an open item.',
+      },
+      {
+        label: 'Publishing slots, 23–26 Nov',
+        value: '9 / 9 each day',
+        note: 'Slot ledger for four consecutive days; every scheduled run exited green.',
+      },
+      {
+        label: 'Clicks and revenue, last 10 days',
+        value: '0 clicks, $0.00',
+        note: 'Daily partner report. The seven-day window shows −₩2,997 from a cancellation, not new spend.',
+      },
+      {
+        label: 'Sibling game property, 29 Oct–25 Nov',
+        value: '570 users, 593 sessions',
+        note: 'Analytics overview for the full window; 322 game starts and 10 ad clicks from 9 users in the same period.',
+      },
+      {
+        label: 'Same property, last 7 days',
+        value: '476 sessions',
+        note: 'Geographic report: ~388 estimated datacenter, ~41 Korean. The bot share is an estimate from one address range.',
+      },
+      {
+        label: 'Ad clicks, 44 days',
+        value: '10 from 9 users',
+        note: 'Event report, read after five custom dimensions were registered.',
+      },
+      {
+        label: 'Ad clicks matched to a service',
+        value: '5 of 10',
+        note: 'Partner dashboard, read by hand. The other five are not measured, and the split is not retroactive.',
+      },
+      {
+        label: 'This site on its publish day (26 Nov)',
+        value: '0 users, 0 pageviews',
+        note: 'Analytics. The guide published on schedule and nothing arrived. Seven-day sessions on this site: 19.',
+      },
+      {
+        label: 'Guides live / log entries',
+        value: '13 / 3',
+        note: 'Site listing after the 26 Nov publish.',
+      },
+      {
+        label: 'Sales',
+        value: '0',
+        note: 'No sale, refund or payout notification received.',
+      },
+    ],
+    nextTest: [
+      'The test for the next two weeks is discovery, not output. Publish at the same cadence and watch one thing: whether the first week of split click data produces a channel with attributed humans. A channel that produces readers gets repeated; one that produces nobody is recorded as closed rather than worked around.',
+      'The second test is the free tier. The withdrawn ID leaves the default list this week, so that the next withdrawal does not leave the first-choice model dead for a day.',
+      'Neither test changes the budget. It is still $0.00 a month and zero sales, and this log keeps writing that down in the same four sections until a number moves.',
+    ],
+    tools: [
+      { label: 'What an LLM feature costs per month', href: '/guides/ai-api-cost-calculator/' },
+      { label: 'What a 50 percent batch discount is worth', href: '/guides/batch-api-discount-break-even/' },
+      { label: 'The cache hit rate that decides whether prompt caching pays', href: '/guides/prompt-cache-hit-rate-value/' },
+    ],
+  },
 ];
 
 export const logEntryBySlug = (slug: string): LogEntry => {
