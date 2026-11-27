@@ -89,6 +89,16 @@
       "source_url": "https://platform.openai.com/docs/guides/prompt-caching",
       "model": "queue:cp-2026-11-26-01",
       "published_at": "2026-11-26T09:36:49+00:00"
+    },
+    {
+      "date": "2026-11-27",
+      "slug": "rag-retrieval-cost-per-query",
+      "title": "What One Retrieval Lookup Adds to the Answer Bill",
+      "family": "AI cost",
+      "source": "OpenAI API documentation",
+      "source_url": "https://platform.openai.com/docs/guides/embeddings",
+      "model": "queue:cp-2026-11-27-01",
+      "published_at": "2026-11-27T09:43:07+00:00"
     }
   ],
   "skips": [],
@@ -146,6 +156,12 @@
       "mode": "generate",
       "slug": "prompt-cache-hit-rate-value",
       "model": "queue:cp-2026-11-26-01"
+    },
+    {
+      "date": "2026-11-27",
+      "mode": "generate",
+      "slug": "rag-retrieval-cost-per-query",
+      "model": "queue:cp-2026-11-27-01"
     }
   ]
 }

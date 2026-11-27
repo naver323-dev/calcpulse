@@ -1,0 +1,172 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import LlmApiCostCalculator from '../../components/LlmApiCostCalculator.astro';
+
+const guide = guideBySlug('rag-retrieval-cost-per-query');
+
+const faq = [
+  {
+    q: "Is retrieval more expensive than the model answer?",
+    a: "It can be. With five chunks of four hundred tokens each, every question carries two thousand extra input tokens, and with a reranker that reads twenty candidates it carries eight thousand more before a single output token is produced. In a system with short answers and a wide retrieval net, the lookup is the largest line on the bill, not the generation.",
+  },
+  {
+    q: "How do I estimate the cost of embedding a corpus?",
+    a: "Multiply the number of chunks by the average tokens per chunk, then by your vendor's price per million input tokens. Twenty thousand chunks at four hundred tokens is eight million tokens, which is a one-off cost at most vendors' embedding rates. Repeat the figure for your re-index cadence and add the two.",
+  },
+  {
+    q: "Does a smaller chunk size save money?",
+    a: "Only if the retriever also pastes fewer tokens in total. Smaller chunks usually mean more of them are needed to cover the same context, so five small chunks can cost less than five large ones but more than three large ones. The bill follows the tokens pasted into the prompt, so decide chunk size and chunk count together.",
+  },
+  {
+    q: "What is the cheapest way to cut retrieval cost?",
+    a: "Cut the number of chunks pasted into the prompt, because that is usually the largest of the three metered events. Then re-embed only changed chunks, and cap the rerank candidate count. Switching to a cheaper embedding model is the last move, because the corpus embedding is rarely the line that hurts.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-27',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      AI cost
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">AI cost</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          Retrieval is billed three times, and the cheapest part is the corpus
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          A retrieval step looks free next to the language model that answers, because the embedding call is cheap and the vector search is a database query. The bill says otherwise. One lookup is metered three times: once to embed the documents, once to embed the question, and once more when the retrieved chunks are pasted into the prompt that produces the answer.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-27 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Three metered events, not one</h2>
+        <p>The first event is the corpus. Embeddings are billed on the tokens in the input, so a knowledge base of twenty thousand chunks at four hundred tokens each is eight million tokens of work before the first question is asked. At an assumed rate of two cents per million input tokens that is sixteen cents, which is why teams treat the corpus as free and stop looking at it.</p>
+        <p>The second event is the question. A typical prompt is thirty tokens, so three thousand questions a month is ninety thousand tokens and a fraction of a cent. The third event is the one that changes the budget: every retrieved chunk travels back to the model as input, and the model is asked to read all of them before it writes a sentence.</p>
+
+        <h2>The chunk count is the real price setting</h2>
+        <p>Five chunks of four hundred tokens is two thousand tokens added to every answer. Across three thousand questions a month that is six million extra input tokens, and at an assumed sixty cents per million it costs three dollars sixty, before the answer itself is written. Raise the chunk count to eight and the same traffic adds nine point six million tokens and five dollars seventy-six. Nothing in the product changed except a number in the retriever.</p>
+        <p>This is why the chunk count belongs in the product spec rather than in the search configuration. It is a cost setting that also happens to be a quality setting, and the two should be decided together: measure answer quality at three, five and eight chunks, then pick the smallest count that keeps quality where it needs to be. The difference between three and eight chunks is rarely visible in a demo and always visible in a monthly statement.</p>
+      </div>
+
+      <LlmApiCostCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Reranking doubles the input before the model answers</h2>
+        <p>A reranker reads every candidate and scores it, so its cost is set by how many candidates it reads, not by how many survive. Scoring twenty candidates of four hundred tokens each is eight thousand input tokens per question, four times the five chunks that actually reach the model. At an assumed sixty cents per million input tokens and three thousand questions, that is fourteen dollars forty a month for a step whose output is a reordered list.</p>
+        <p>The rerank is still worth buying in many systems, because it lets the retriever cast a wide net and still keep the prompt small. The mistake is pricing it as a rounding error. Treat it as a second prompt-sized bill and decide the candidate count with the same discipline as the chunk count.</p>
+
+        <h2>Re-indexing is cheap until it is not</h2>
+        <p>Embedding the whole corpus again every week is thirty-two million tokens a month on the example above, about sixty-four cents at the assumed rate. Even a nightly full rebuild stays under a few dollars. For most teams the corpus is genuinely the cheap part, and optimizing it is a waste of a sprint.</p>
+        <p>The exception is a corpus that changes constantly and is large enough to matter, such as a support system with tens of millions of chunks. There the fix is not a cheaper embedding model, it is hashing each chunk and embedding only the ones whose text changed. That turns a rebuild into an incremental job and keeps the cost proportional to editing, not to size.</p>
+
+        <h2>What to measure before you optimize</h2>
+        <p>Start with three numbers: questions per day, tokens per chunk, and chunks pasted into the prompt. Those three produce the retrieval line of the bill without a spreadsheet. Then add the rerank candidate count and the re-index cadence, and the whole retrieval layer is priced in one place.</p>
+        <p>The most common mistake is counting documents instead of chunks. A ten-thousand page wiki at one chunk per page looks small; at eight chunks per page it is eighty thousand embeddings and a prompt that carries eight of them per question. Counting the unit the retriever actually emits is the difference between an estimate and a guess.</p>
+
+        <h2>Where the estimate goes wrong in production</h2>
+        <p>Two things break a clean estimate. The first is a retriever that returns variable-length chunks, because a sentence splitter produces chunks between eighty and six hundred tokens and the average hides the expensive ones. Price the ninetieth percentile chunk instead of the mean, and the estimate survives contact with real traffic.</p>
+        <p>The second is a conversation that keeps its history. A follow-up question carries the previous turn plus a fresh set of chunks, so the third question in a thread costs more than the first. Multiply the per-question figure by the average turns per session, not by the number of sessions, or the monthly number will be about half of what arrives on the statement.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Count chunks, not documents, when you size the corpus</li>
+          <li>Measure the tokens in the chunks you paste into the prompt, not the tokens in the answer</li>
+          <li>Price the rerank call as a separate input bill sized by the candidate count</li>
+          <li>Re-embed only changed chunks instead of rebuilding the corpus</li>
+          <li>Test answer quality at three, five and eight chunks before fixing the count</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The LLM API cost calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/saas-break-even-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">SaaS break-even and ROI calculator</a><span class="text-ink-600"> — When does this subscription actually pay for itself?</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://platform.openai.com/docs/guides/embeddings" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Vector embeddings: requests are billed on input tokens
+          </a>
+          (OpenAI API documentation, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>

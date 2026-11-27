@@ -198,6 +198,20 @@ export const guides: Guide[] = [
     keywords: ["prompt cache hit rate", "cached input token cost", "llm input cost model", "context reuse savings"],
     topic: "AI cost",
   },
+  {
+    slug: "rag-retrieval-cost-per-query",
+    title: "What One Retrieval Lookup Adds to the Answer Bill",
+    h1: "Retrieval is billed three times, and the cheapest part is the corpus",
+    description:
+      "A retrieval step is billed three times: embedding the corpus, embedding the question, and the chunks you paste back into the prompt.",
+    summary:
+      "Teams count the answer tokens and forget the lookup. The corpus embedding is a one-off, the question embedding is rounding, and the retrieved chunks pasted into the prompt are usually the largest of the three.",
+    calculator: "LLM API cost calculator",
+    updated: '2026-11-27',
+    minutes: 4,
+    keywords: ["rag cost per query", "embedding cost estimate", "retrieval token cost", "vector search budget"],
+    topic: "AI cost",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {
