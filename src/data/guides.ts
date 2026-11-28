@@ -212,6 +212,20 @@ export const guides: Guide[] = [
     keywords: ["rag cost per query", "embedding cost estimate", "retrieval token cost", "vector search budget"],
     topic: "AI cost",
   },
+  {
+    slug: "seat-vs-usage-pricing-breakeven",
+    title: "Seat Pricing or Usage Pricing: Where the Bill Crosses",
+    h1: "One division decides whether a seat or a meter earns more",
+    description:
+      "The cheaper model depends on one number: how much the average customer consumes against the seat price you would otherwise charge.",
+    summary:
+      "Seat pricing charges for access and usage pricing charges for consumption. The crossover is the seat price divided by the per-unit rate, and the share of customers above that line decides which model collects more.",
+    calculator: "SaaS break-even and ROI calculator",
+    updated: '2026-11-28',
+    minutes: 4,
+    keywords: ["seat vs usage pricing", "usage based billing model", "saas pricing breakeven", "per seat pricing math"],
+    topic: "SaaS & tooling",
+  },
 ];
 
 export const guideBySlug = (slug: string): Guide => {

@@ -99,6 +99,16 @@
       "source_url": "https://platform.openai.com/docs/guides/embeddings",
       "model": "queue:cp-2026-11-27-01",
       "published_at": "2026-11-27T09:43:07+00:00"
+    },
+    {
+      "date": "2026-11-28",
+      "slug": "seat-vs-usage-pricing-breakeven",
+      "title": "Seat Pricing or Usage Pricing: Where the Bill Crosses",
+      "family": "SaaS & tooling",
+      "source": "Stripe documentation",
+      "source_url": "https://docs.stripe.com/billing/subscriptions/usage-based",
+      "model": "queue:cp-2026-11-28-01",
+      "published_at": "2026-11-28T08:56:32+00:00"
     }
   ],
   "skips": [],
@@ -162,6 +172,12 @@
       "mode": "generate",
       "slug": "rag-retrieval-cost-per-query",
       "model": "queue:cp-2026-11-27-01"
+    },
+    {
+      "date": "2026-11-28",
+      "mode": "generate",
+      "slug": "seat-vs-usage-pricing-breakeven",
+      "model": "queue:cp-2026-11-28-01"
     }
   ]
 }

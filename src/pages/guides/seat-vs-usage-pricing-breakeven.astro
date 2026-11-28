@@ -1,0 +1,170 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { guideBySlug } from '../../data/guides';
+import OfferSlot from '../../components/OfferSlot.astro';
+import SaasRoiCalculator from '../../components/SaasRoiCalculator.astro';
+
+const guide = guideBySlug('seat-vs-usage-pricing-breakeven');
+
+const faq = [
+  {
+    q: "How do I find the break-even point between a seat and a meter?",
+    a: "Divide the monthly seat price by the price of one unit of usage. A thirty dollar seat and twenty cents per thousand requests cross at one hundred fifty thousand requests a month. Everything below that quantity is cheaper on the meter and everything above it is cheaper on the seat, for the customer and for your revenue in the same direction.",
+  },
+  {
+    q: "Does usage pricing always earn more than seat pricing?",
+    a: "No. It earns more only when the average account consumes more than the seat price is worth. In the example on this page, five hundred accounts with forty percent heavy users produce nine thousand six hundred dollars on the meter and fifteen thousand on seats, so the meter only wins once roughly a third of the base is heavy.",
+  },
+  {
+    q: "What is a hybrid pricing model?",
+    a: "A platform fee that includes an allowance of usage, with an overage rate above it. It gives the buyer a ceiling to approve and gives the seller a revenue floor, at the cost of overcharging the lightest customers. Most software companies land here after one round of complaints about a pure meter.",
+  },
+  {
+    q: "When should a company switch from seats to usage?",
+    a: "When the median account consumes well above the seat price and the infrastructure cost scales with that consumption. If the median is below the seat price, a switch lowers revenue unless the rate rises, and the customers who benefit most are the light ones who were already profitable.",
+  },
+];
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Article',
+      headline: guide.h1,
+      description: guide.description,
+      datePublished: '2026-11-28',
+      dateModified: guide.updated,
+      inLanguage: 'en',
+      author: { '@type': 'Organization', name: 'CalcPulse Editorial Team' },
+      publisher: { '@type': 'Organization', name: 'CalcPulse' },
+      mainEntityOfPage: `https://calcpulse.pages.dev/guides/${guide.slug}/`,
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: faq.map((item) => ({
+        '@type': 'Question',
+        name: item.q,
+        acceptedAnswer: { '@type': 'Answer', text: item.a },
+      })),
+    },
+  ],
+};
+---
+
+<BaseLayout title={guide.title} description={guide.description} jsonLd={jsonLd} updated={guide.updated}>
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 py-12">
+    <nav class="text-sm text-ink-400" aria-label="Breadcrumb">
+      <a href="/" class="hover:text-ink-600">Home</a> <span aria-hidden="true">/</span>
+      <a href="/guides/" class="hover:text-ink-600">Guides</a> <span aria-hidden="true">/</span>
+      SaaS &amp; tooling
+    </nav>
+
+    <article class="mt-4">
+      <header class="max-w-3xl">
+        <p class="text-xs font-semibold uppercase tracking-[0.14em] text-pulse-600">SaaS &amp; tooling</p>
+        <h1 class="mt-2 text-3xl sm:text-4xl font-semibold tracking-tight text-ink-950 leading-tight">
+          One division decides whether a seat or a meter earns more
+        </h1>
+        <p class="mt-4 text-lg text-ink-600 leading-relaxed">
+          Every software company eventually argues about seats and meters, and the argument usually runs on intuition about fairness. The arithmetic is simpler than the argument: a seat price and a usage rate cross at one quantity, and the share of customers above that quantity decides which model collects more money from the same customer base.
+        </p>
+        <p class="mt-4 text-sm text-ink-400">
+          Reviewed 2026-11-28 · 4 min read · by CalcPulse Editorial Team · calculator runs in your browser
+        </p>
+      </header>
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>The two models bill different things</h2>
+        <p>Seat pricing sells access. The customer pays for the number of people who can log in, and the amount they do inside the product does not change the invoice. Usage pricing sells consumption: the customer is charged for what was recorded, whether that is requests, documents, events or minutes, and payments are collected through meters that accumulate during the period.</p>
+        <p>The difference shows up in the tail. A seat price is predictable for both sides and punishes a customer who uses the product heavily without paying more. A usage rate is fair to the light customer and unpredictable for the buyer, which is why so many usage-based products add prepaid credits and usage thresholds to make the bill answerable before finance asks about it.</p>
+
+        <h2>The crossover is one division</h2>
+        <p>Take a seat price of thirty dollars a month and a usage rate of twenty cents per thousand requests. The two produce the same invoice at one hundred fifty thousand requests, because thirty dollars divided by twenty cents per thousand is one hundred fifty thousand. Below that quantity the meter charges less than the seat; above it the meter charges more.</p>
+        <p>That single number reframes the decision. The question is not whether usage is fairer, it is what share of customers sit above one hundred fifty thousand requests. The median customer decides the story the pricing page tells, and the customers in the top decile decide the revenue.</p>
+      </div>
+
+      <SaasRoiCalculator />
+
+      <div class="prose prose-ink mt-10 max-w-3xl">
+        <h2>Worked example: five hundred accounts</h2>
+        <p>Suppose the base is five hundred accounts, forty percent of them heavy at four hundred thousand requests a month and the rest light at twenty thousand. At twenty cents per thousand requests, heavy accounts pay eighty dollars and light accounts pay four. Total usage revenue is sixteen thousand dollars from the heavy group and one thousand two hundred from the light group.</p>
+        <p>Seat pricing at thirty dollars collects fifteen thousand dollars from the same base. Usage wins by two thousand two hundred, because the average account consumes thirty-four dollars forty of meter, above the seat price. Move the heavy share down to twenty percent and the meter collects nine thousand six hundred against fifteen thousand for seats, and the conclusion flips. The heavy share that makes the meter break even in this example is about thirty-four percent.</p>
+
+        <h2>Why buyers push back on the meter</h2>
+        <p>A usage invoice moves with behaviour, so the buyer cannot approve a budget without an estimate, and the estimate depends on their own product's traffic. That is a real cost even when the average bill is lower than the seat price, because finance teams approve ceilings rather than formulas.</p>
+        <p>The usual answer is a hybrid: a platform fee that includes an allowance, plus an overage rate. A thirty-nine dollar fee with fifty thousand included requests and fifteen cents per thousand after that charges a heavy account ninety-one dollars fifty and a light account thirty-nine. It protects the revenue floor and caps the surprise, at the price of charging the lightest customers far more than their consumption.</p>
+        <p>There is also a sales cost that never appears in the model. A meter makes every renewal a negotiation about last quarter's traffic, while a seat price renews itself as long as the team stays the same size. Companies that sell to procurement-heavy buyers usually keep some seat component for exactly that reason: the invoice has to be explainable in one sentence to someone who was not in the demo.</p>
+
+        <h2>What to measure before you switch</h2>
+        <p>Measure the distribution, not the average. Pull the median and the ninetieth percentile of usage per account, then multiply each by the rate you would charge and compare with the seat price. If the median falls below the seat price, seat pricing is protecting gross margin and a switch will lower revenue unless you raise the rate.</p>
+        <p>Then measure the cost to serve the heavy accounts. A meter that charges eighty dollars to a customer who costs sixty dollars in infrastructure is a better business than a seat that charges thirty dollars to the same customer, and no average hides that. Finally, check the support load: every invoice question about a meter is a conversation a seat price never starts.</p>
+        <p>One more test is worth running before any change: price the current base under both models for a full year, including the customers who would downgrade or leave. Usage pricing tends to look better on a spreadsheet and worse in a renewal conversation, and the gap between those two outcomes is the number the decision should rest on.</p>
+
+        <h2>What to check this week</h2>
+        <ul>
+          <li>Compute the crossover quantity by dividing the seat price by the per-unit rate</li>
+          <li>Compare the median and ninetieth percentile of usage, not the average</li>
+          <li>Price infrastructure cost per heavy account before switching models</li>
+          <li>Add prepaid credits or usage thresholds so the buyer can approve a ceiling</li>
+          <li>Keep a platform fee if the lightest customers would otherwise pay almost nothing</li>
+        </ul>
+      </div>
+
+      <section class="mt-12 max-w-3xl">
+        <h2 class="text-xl font-semibold text-ink-950">Questions this guide gets</h2>
+        <dl class="mt-4 divide-y divide-ink-200 border-y border-ink-200">
+          {
+            faq.map((item) => (
+              <div class="py-4">
+                <dt class="font-medium text-ink-950">{item.q}</dt>
+                <dd class="mt-1.5 text-sm leading-relaxed text-ink-600">{item.a}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+
+      <aside class="mt-12 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Run the numbers</p>
+        <p class="mt-1 font-semibold text-ink-950">The SaaS break-even and ROI calculator is on this page</p>
+        <p class="mt-1 text-sm text-ink-600">
+          The same arithmetic drives the rest of the site. If this guide was the closest one to your
+          question, one of these is usually the next:
+        </p>
+        <ul class="mt-3 text-sm">
+        <li class="mt-2">
+          <a href="/guides/ai-api-cost-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">LLM API cost calculator</a><span class="text-ink-600"> — What your LLM feature actually costs per month</span>
+        </li>
+        <li class="mt-2">
+          <a href="/guides/payment-fee-calculator/" class="font-medium text-ink-950 hover:text-pulse-700">Payment fee calculator</a><span class="text-ink-600"> — What your payment processor keeps every month</span>
+        </li>
+        </ul>
+      </aside>
+
+      <aside class="mt-6 max-w-3xl rounded-xl border border-ink-200 bg-white p-5">
+        <p class="text-xs font-semibold uppercase tracking-wider text-ink-400">Paid tools</p>
+        <a href="https://stackverdict-8jj.pages.dev" rel="noopener" class="mt-1 block font-semibold text-ink-950 hover:text-pulse-700">
+          StackVerdict reviews the tools you would be paying for →
+        </a>
+        <p class="mt-1 text-sm text-ink-600">
+          The sibling site writes long, hands-on reviews of paid software. Read one before you put a
+          subscription on the same spreadsheet as the numbers above.
+        </p>
+      </aside>
+
+      <section class="mt-10 max-w-3xl text-sm text-ink-500">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-ink-400">Prompted by</h2>
+        <p class="mt-2">
+          <a href="https://docs.stripe.com/billing/subscriptions/usage-based" rel="noopener" class="underline decoration-ink-300 hover:text-ink-700">
+            Basic usage-based billing: charging by recorded usage, credits and thresholds
+          </a>
+          (Stripe documentation, 0 points). The link is the discussion that
+          prompted this guide, not a source for its figures: every number on the page is an input you
+          set yourself.
+        </p>
+      </section>
+
+      <OfferSlot class="mt-4 max-w-3xl" />
+    </article>
+  </div>
+</BaseLayout>
